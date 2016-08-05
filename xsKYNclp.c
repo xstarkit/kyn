@@ -1,94 +1,104 @@
 /* KYNclp - convolution general relativistic model - non-axisymmetric version
- * C version of Fortran77 model subroutine for XSPEC
- *
+ *          model subroutine for XSPEC
+ * 
  * ref. Dovciak M., Karas V., Yaqoob T. (2004)
- * -------------------------------------------
- * REFERENCES:
- *
- * Dovciak M., Karas V. & Yaqoob, T. (2004). An extended scheme
- * for fitting X-ray data with accretion disk spectra in the strong
- * gravity regime. ApJS, 153, 205.
- *
+ * -----------------------------------------------------------------------------
+ * OTHER REFERENCES:
+ * 
+ * Dovciak M., Karas V. & Yaqoob, T. (2004). An extended scheme for fitting 
+ * X-ray data with accretion disk spectra in the strong gravity regime. 
+ * ApJS, 153, 205.
+ * 
  * Dovciak M., Karas V., Martocchia A., Matt G. & Yaqoob T. (2004). XSPEC model
- * to explore spectral features from black hole sources.
- * In Proc. of the workshop on processes in the vicinity
- * of black holes and neutron stars.
+ * to explore spectral features from black hole sources. In Proc. of the 
+ * workshop on processes in the vicinity of black holes and neutron stars. 
  * S.Hledik & Z.Stuchlik, Opava. In press. [astro-ph/0407330]
- *
+ * 
  * Dovciak M. (2004). Radiation of accretion discs in strong gravity. Faculty of
  * Mathematics and Physics, Charles University, Prague. PhD thesis.
  * [astro-ph/0411605]
- * -------------------------------------------
- *
- * This convolution subroutine takes input photar() array as a definition of the
- * local flux across the accretion disc around a black hole and adds a broken
- * power-law radial dependence and limb darkening/brightening law to it. The
- * output is total spectrum of an accretion disc. All relativistic effects are
- * taken into account. This model calls subroutine ide() for integrating local
- * emission over the disc and uses the fits file 'KBHtablesNN.fits' defining the
- * transfer functions needed for integration. For details on ide() and the fits
- * file see the subroutine ide() in xside.c.
+ * -----------------------------------------------------------------------------
+ * 
+ * This convolution subroutine takes input photar[] array as a definition of the
+ * local flux across the accretion disc around a black hole and adds the radial 
+ * dependence governed by the disc illumination from a point source located at 
+ * some height on the system axis to it. The output is total spectrum of an 
+ * accretion disc. All relativistic effects are taken into account. This model 
+ * calls subroutine ide() for integrating local emission over the disc and uses 
+ * the FITS file 'KBHtablesNN.fits' defining the transfer functions needed for 
+ * integration over disc as well as the FITS file 'KBHlamp_q.fits' defining the 
+ * transfer functions between the source and the disc. For details on ide() and 
+ * the FITS file 'KBHtablesNN.fits' see the subroutine ide() in xside.c, for 
+ * details on the FITS file 'KBHlamp_q.fits' see the subroutine KYNrlpli() in 
+ * xsKYNrline.c. The emission directionality (limb brightening/darkening law) is 
+ * modelled by Monte Carlo code NOAR and is stored in the FITS file 
+ * 'fluorescent_line.fits', see the subroutine KYNrlpli() in xsKYNrlpli.c for
+ * more details.
  *
  * There are several restrictions that arise from the fact that we use existing
  * XSPEC models for definition of the local flux:
  * - only the energy dependence of the photon flux can be defined by local XSPEC
  *   models,
  * - only a certain type of radial dependence of the local photon flux can be
- *   imposed - we have chosen to use a broken power-law radial dependence,
+ *   imposed - we have chosen to use an illumination by a point source on axis,
  * - there is no intrinsic azimuthal dependence of the local photon flux, the
  *   only azimuthal dependence comes through limb darkening/brightening law
  *   (emission angle depends on azimuth)
  * - local flux can highly depend on the energy resolution, i.e. on the energy
  *   binning used, if the energy resolution is not high enough. This is because
  *   the flux is defined in the centre of each bin. A large number of bins is
- *   needed for highly varying local flux.
+ *   needed for highly varying local flux with energy.
  *
- * For emissivities that cannot be defined by existing XSPEC models,
- * or where the limitations mentioned above are too restrictive,
- * one has to add a new user-defined model to XSPEC
- * (by adding a new subroutine to XSPEC). This method is more flexible
- * and faster than when using this convolution model, and hence
- * it is recommended even for cases when this model could be used. In any new
- * model for XSPEC one can use the common ray-tracing driver for relativistic
- * smearing of the local emission: ide() for non-axisymmetric models and idre()
- * or idre2() for axisymmetric ones.
+ * For emissivities that cannot be defined by existing XSPEC models, or where 
+ * the limitations mentioned above are too restrictive, one has to add a new 
+ * user-defined model to XSPEC (by adding a new subroutine to XSPEC). This 
+ * method is more flexible and faster than when using this convolution model, 
+ * and hence it is recommended even for cases when this model could be used. 
+ * In any new model for XSPEC one can use the common ray-tracing driver for 
+ * relativistic smearing of the local emission: ide() for non-axisymmetric 
+ * models and idre() for axisymmetric ones.
  *
  * par1  ... a/M     - black hole angular momentum (-1 <= a/M <= 1)
  * par2  ... theta_o - observer inclination in degrees (0-pole, 90-disc)
  * par3  ... rin - inner edge of non-zero disc emissivity (in GM/c^2 or in 
  *                 r_mso)
- * par4  ... ms  - 0 - we integrate from inner edge = par3 
- *                 1 - if the inner edge of the disc is below marginally stable
- *                     orbit then we integrate emission above MSO only
- *                 2 - we integrate from inner edge given in units of MSO, i.e.
- *                     inner edge = par3 * r_mso (the same applies for outer 
- *                     edge)
+ * par4  ... ms  - switch that defines the meaning/units of rin, rout
+ *                 0: we integrate from inner edge = par3 
+ *                 1: if the inner edge of the disc is below marginally stable
+ *                    orbit then we integrate emission above MSO only
+ *                 2: we integrate from inner edge given in units of MSO, i.e.
+ *                    inner edge = par3 * r_mso (the same applies for outer 
+ *                    edge)
  * par5  ... rout  - outer edge of non-zero disc emissivity (in GM/c^2 or in 
  *                   r_mso)
  * par6  ... phi   - lower azimuth of non-zero disc emissivity (deg)
  * par7  ... dphi  - (phi + dphi) is upper azimuth of non-zero disc emissivity
  *                   0 <= dphi <= 360  (deg)
- * par8  ... height   - height on the axis (measured from the center) at which
- *                      the primary source is located (GM/c^2)
+ * par8  ... height - height on the axis (measured from the center) at which
+ *                    the primary source is located (GM/c^2)
  * par9  ... PhoIndex - power-law energy index of the primary flux
  * par10 ... alpha  - position of the cloud centre in GM/c^2 in alpha coordinate
  *                    (alpha being the impact parameter in phi direction, 
  *                     positive for approaching side of the disc)
  * par11 ... beta   - position of the cloud centre in GM/c^2 in beta coordinate
  *                    (beta being the impact parameter in theta direction, 
- *                     positive in up direction, i.e. away from the disc)
- * par12 ... rcloud - radius of the obscuring cloud
+ *                     positive in up direction, i.e. above the disc)
+ * par12 ... rcloud - radius of the obscuring cloud (in GM/c^2)
+ *                  - if negative, only the emission transmitted through
+ *                    the cloud is taken into account
  * par13 ... zshift - overall Doppler shift
- * par14 ... ntable - defines fits file with tables (0 <= ntable <= 99)
+ * par14 ... ntable - table of relativistic transfer functions used in the model
+ *                    (defines fits file with tables), 0<= ntable <= 99
  * par15 ... nrad   - number of grid points in radius
  * par16 ... division - type of division in r integration
- *                      (0-equidistant, 1-exponential)
+ *                      0 -> equidistant radial grid (constant linear step)
+ *                      1 -> exponential radial grid (constant logarithmic step)
  * par17 ... nphi   - number of grid points in azimuth
  * par18 ... ne_loc - number of grid points in local energy
  *                    (energy resolution of local flux, the grid is equidistant
  *                    in logarithmic scale)
  * par19 ... smooth - whether to smooth the resulting spectrum (0-no, 1-yes)
- * par20 ... Stokes - what should be stored in photar() array
+ * par20 ... Stokes - what should be stored in photar() array, i.e. as output
  *                    = 0 - array of photon number density flux per bin
  *                         (array of Stokes parameter I devided by energy)
  *                    = 1 - array of Stokes parameter Q devided by energy
@@ -98,7 +108,15 @@
  *                    = 5 - array of polarization angle psi=0.5*atan(U/Q)
  *                    = 6 - array of "Stokes" angle
  *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
- * par21 ... nthreads - how many threads should be used for computations
+ * par21 ... nthreads - number of threads to be used for computations
+ * par22 ... normtype - how to normalize the spectra
+ *                      =  0: the total photon flux is the same as the total 
+ *                            flux before convolution,
+ *                      >  0: the photon flux at 'par22' keV is the same as the 
+ *                            photon flux at that energy before convolution,
+ *                      = -1: the photon flux is not re-normalized,
+ *                      = -2: the maximum of the photon flux is the same as the 
+ *                            maximum of the photon flux before convolution,
  *
  * NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi, ne_loc
@@ -106,9 +124,6 @@
  *  -> in this model it is assumed that local emission is completely
  *     linearly polarized in the direction perpendicular to the disc
  *
-*******************************************************************************/
-
-/*******************************************************************************
 *******************************************************************************/
 
 #include <stdio.h>

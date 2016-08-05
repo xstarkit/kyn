@@ -1,60 +1,67 @@
-/* KYNlpcr - reflection
- * C version of Fortran77 model subroutine for xspec (supplemented by a main
- * driver).
- *
- * ref. Dovciak M., Karas V., Martocchia A., Matt G., Yaqoob T. (2004)
- * -------------------------------------------------------------------
- * REFERENCES:
- *
+/* KYNlpcr - relativistic disc reflection in lamp-post geometry (neutral disc)
+ *           model subroutine for XSPEC
+ * 
+ * ref. Dovciak M., Karas V., Yaqoob T. (2004)
+ * -----------------------------------------------------------------------------
+ * OTHER REFERENCES:
+ * 
+ * Dovciak, M., Svoboda, J., Goosmann, R. W., et al.: 2014, in Proceedings
+ * of RAGtime 14-16: Workshops on black holes and neutron stars (Silesian 
+ * University in Opava). [arXiv:1412.8627]
+ * 
+ * Dovciak M., Karas V. & Yaqoob, T. (2004). An extended scheme for fitting 
+ * X-ray data with accretion disk spectra in the strong gravity regime. 
+ * ApJS, 153, 205.
+ * 
  * Dovciak M., Karas V., Martocchia A., Matt G. & Yaqoob T. (2004). XSPEC model
- * to explore spectral features from black hole sources.
- * In Proc. of the workshop on processes in the vicinity of black holes
- * and neutron stars. S.Hledik & Z.Stuchlik, Opava. In press. [astro-ph/0407330]
- *
- * Dovciak M., Karas V. & Yaqoob, T. (2004). An extended scheme
- * for fitting X-ray data with accretion disk spectra in the strong gravity
- * regime. ApJS, 153, 205.
- *
+ * to explore spectral features from black hole sources. In Proc. of the 
+ * workshop on processes in the vicinity of black holes and neutron stars. 
+ * S.Hledik & Z.Stuchlik, Opava. In press. [astro-ph/0407330]
+ * 
  * Dovciak M. (2004). Radiation of accretion discs in strong gravity. Faculty of
  * Mathematics and Physics, Charles University, Prague. PhD thesis.
  * [astro-ph/0411605]
- * -------------------------------------------------------------------
+ * -----------------------------------------------------------------------------
  *
  * This subroutine computes the emission from an acrretion disc that is
  * illuminated from the primary power-law source located on the axis above the
- * central black hole. All relativistic effects are taken into account (in both
- * parts of the light path - from the primary source to the disc and from the
- * disc to the observer). This subroutine calls subroutine ide() for integrating
- * local emission over the disc and uses the fits file 'KBHtablesNN.fits'
- * defining the transfer functions needed for the integration. For details on
- * ide() and the fits file see the subroutine ide(). This subroutine uses
- * KBHlamp.fits file with transfer functions for the light coming from primary
- * source and hitting the accretion disc (see the description of this file
- * below). The reflection is modelled by Monte Carlo simulations of Compton
- * scattering which is precalculated in the reflspectra.fits file (see the
- * description of this file below).
+ * central black hole. All relativistic effects are taken into account (in all 
+ * three parts of the light path - from the primary source to the observer, to 
+ * disc and from the disc to the observer). This model calls subroutine ide() 
+ * for integrating local emission over the disc and uses the FITS file 
+ * 'KBHtablesNN.fits' defining the transfer functions needed for integration 
+ * over disc as well as the FITS file 'KBHlamp_q.fits' defining the transfer 
+ * functions between the source and the disc. For details on ide() and the FITS 
+ * file 'KBHtablesNN.fits' see the subroutine ide() in xside.c, for details on 
+ * the FITS file 'KBHlamp_q.fits' see the subroutine KYNrlpli() in xsKYNrlpli.c.
+ * The reflection is modelled by Monte Carlo simulations of Compton
+ * scattering with the code NOAR which is stored in the 'reflspectra.fits' file 
+ * (see the description of this file below).
  *
  * par1  ... a/M     - black hole angular momentum (-1 <= a/M <= 1)
  * par2  ... theta_o - observer inclination in degrees (0-pole, 90-disc)
  * par3  ... rin - inner edge of non-zero disc emissivity (in GM/c^2 or in 
  *                 r_mso)
- * par4  ... ms  - 0 - we integrate from inner edge = par3 
- *                 1 - if the inner edge of the disc is below marginally stable
- *                     orbit then we integrate emission above MSO only
- *                 2 - we integrate from inner edge given in units of MSO, i.e.
- *                     inner edge = par3 * r_mso (the same applies for outer 
- *                     edge)
+ * par4  ... ms  - switch that defines the meaning/units of rin, rout
+ *                 0: we integrate from inner edge = par3 
+ *                 1: if the inner edge of the disc is below marginally stable
+ *                    orbit then we integrate emission above MSO only
+ *                 2: we integrate from inner edge given in units of MSO, i.e.
+ *                    inner edge = par3 * r_mso (the same applies for outer 
+ *                    edge)
  * par5  ... rout  - outer edge of non-zero disc emissivity (in GM/c^2 or in 
  *                   r_mso)
  * par6  ... phi   - lower azimuth of non-zero disc emissivity (deg)
  * par7  ... dphi  - (phi + dphi) is upper azimuth of non-zero disc emissivity
  *                   0 <= dphi <= 360  (deg)
- * par8 ... M/M8   - black hole mass in units of 10^8 solar masses
- * par9  ... height   - height on the axis (measured from the center) at which
- *                      the primary source is located (GM/c^2)
- *                      DO NOT USE THE MODEL WITH NEGATIVE HEIGHT!!! 
+ * par8  ... M/M8   - black hole mass in units of 10^8 solar masses
+ * par9  ... height - height on the axis (measured from the center) at which
+ *                    the primary source is located (GM/c^2)
+ *                    DO NOT USE THE MODEL WITH NEGATIVE HEIGHT!!! 
  * par10 ... PhoIndex - power-law energy index of the primary flux
- * par11 ... L/Ledd   - dE/dt primary isotropic flux in Ledd
+ * par11 ... L/Ledd   - dE/dt, the intrinsic local (if negative) or the 
+ *                      observed (if positive) primary isotropic flux in the 
+ *                      X-ray energy range 2-10keV in units of Ledd
  * par12 ... NpNr   - ratio of the primary to the reflected normalization
  *                    1 - self-consistent model for isotropic primary source
  *                    0 - only reflection, primary source is hidden
@@ -74,35 +81,31 @@
  *                     positive for approaching side of the disc)
  * par16 ... beta   - position of the cloud centre in GM/c^2 in beta coordinate
  *                    (beta being the impact parameter in theta direction, 
- *                     positive in up direction, i.e. away from the disc)
- * par17 ... rcloud - radius of the obscuring cloud
+ *                     positive in up direction, i.e. above the disc)
+ * par17 ... rcloud - radius of the obscuring cloud (in GM/c^2)
+ *                  - if negative, only the emission transmitted through
+ *                    the cloud is taken into account
  * par18 ... zshift - overall Doppler shift
- * par19 ... ntable - defines fits file with tables (0 <= ntable <= 99)
- *                    by default only the tables with ntable=80 are correct
- *                    for this model
+ * par19 ... ntable - table of relativistic transfer functions used in the model
+ *                    (defines fits file with tables), 0<= ntable <= 99
  * par20 ... nrad   - number of grid points in radius
  * par21 ... division - type of division in r integration
- *                      (0-equidistant, 1-exponential)
+ *                      0 -> equidistant radial grid (constant linear step)
+ *                      1 -> exponential radial grid (constant logarithmic step)
  * par22 ... nphi   - number of grid points in azimuth
  * par23 ... smooth - whether to smooth the resulting spectrum (0-no, 1-yes)
- * par24 ... Stokes - what should be stored in photar() array
- *                    = 0 - photon number density flux per bin
- *                         (Stokes parameter I devided by energy)
- *                    = 1 - Stokes parameter Q devided by energy
- *                    = 2 - Stokes parameter U devided by energy
- *                    = 3 - Stokes parameter V devided by energy
- *                    = 4 - degree of polarization
- *                    = 5 - polarization angle psi=0.5*atan(U/Q)
- *                    = 6 - the other pol. angle
+ * par24 ... Stokes - what should be stored in photar() array, i.e. as output
+ *                    = 0 - array of photon number density flux per bin
+ *                         (array of Stokes parameter I devided by energy)
+ *                    = 1 - array of Stokes parameter Q devided by energy
+ *                    = 2 - array of Stokes parameter U devided by energy
+ *                    = 3 - array of Stokes parameter V devided by energy
+ *                    = 4 - array of degree of polarization
+ *                    = 5 - array of polarization angle psi=0.5*atan(U/Q)
+ *                    = 6 - array of "Stokes" angle
  *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
- * par25 ... nthreads - how many threads should be used for computations
- *
- * If the height of the primary source above the black hole is negative
- * then this model assumes radial power-law dependence of local emissivity
- * (tables in the KBHlamp.fits file are not used) and it is assumed 
- * that the disc is illuminated from all directions isotropically
- * (we integrate the tables in reflspectra.fits file over azimuthal angles
- * and cosines of incident angles).
+ * par25 ... nthreads - number of threads to be used for computations
+ * par26 ... norm     - has to be set to unity!
  *
  * NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
@@ -110,85 +113,23 @@
  *  -> the normalization is in the same physical units as the local flux
  *     i.e. we do not renormalize the spectra
  *
- *  -> for positive values of height this model includes a physical model of
- *     polarization based on Rayleigh scattering in single scattering
- *     approximation, for negative values of height the local emission is
- *     completely linearly polarized in the direction perpendicular to the disc
+ *  -> this model includes a physical model of polarization based on Rayleigh 
+ *     scattering in single scattering approximation
  *
- * -------------------------------------------
- * KBHlamp.fits
- *
- * This file contains pre-calculated values of the functions needed for the
- * lamp-post models. It is supposed that a primary source of emission is placed
- * on the axis at a height h from the centre above the Kerr black hole.
- * The matter in the disc rotates on stable circular (free) orbits above the
- * marginally stable orbit and it is freely falling below this orbit
- * where it has the same energy and angular momentum as the matter 
- * which is on the marginally stable orbit. It is assumed that the corona
- * between the source and the disc is optically thin, therefore ray-tracing
- * in the vacuum Kerr space-time could be used for computing the functions.
- *
- * There are five functions stored in the KBHlamp.fits file as columns. They are
- * parametrized by the value of the horizon of the black hole (FITS table
- * extensions), height of the primary source (rows) and either the
- * inclination angles of the observer (elements) or the radius 
- * in GM/c^2 at which a photon strikes the disc (elements). All these are
- * defined as vectors at the beginning of the FITS file. The tables are 
- * defined for
- * r_horizon = 1.00, 1.05, ..., 1.95, 2.00,
- * h-r_horizon = 0.1 - 100 (100 values with exponentially growing step),
- * inclination = 0.1, 1, 5, 10, 15, ..., 80, 85, 89 and
- * r-r_horizon = 0.01 - 1000 (100 values with exponentially growing step).
- *
- * The functions included are:
- * dWadWo - amplification of the primary source:
- *        = sin(theta_axis_local) / sin(theta_observer) *
- *          dtheta_axis_local/dtheta_observer
- * g-factor - the ratio of the energy of a photon hitting the disc to the energy
- *            of the same photon when emitted from a primary source,
- * cosine of the incident angle - an absolute value of the cosine of the local
- *                                incident angle between the incident light ray
- *                                and local disc normal
- * azimuthal incident angle - the angle (in radians) between the projection of
- *                            the three-momentum of the incident photon into the
- *                            disc (in the local rest frame co-moving with the
- *                            disc) and the radial tetrad vector.
- * dWadSd - part of the amplification of the incident flux on the disc from the
- *          primary source:
- *        = sin(theta_axis_local) * dtheta_axis_local / dtheta_fake, with the
- *          theta_fake defined as tan(theta_fake) = radius_incident / height
- *          one has to multiply by h/(r^2+h^2) to get the full amplification
- *
- * The definition of the file KBHlamp.fits:
- * 0. All of the extensions defined below are binary.
- * 1. The first extension contains a vector of the horizon values in GM/c^2
- *    (1.00 <= r_horizon <= 2.00).
- * 2. The second extension contains a vector of the values of heights h of
- *    a primary source in GM/c^2 (0.1 <= h-r_horizon <= 100).
- * 3. The third extension contains a vector of the values of the observer
- *    inclinations (0.1 <= inclination <= 89).
- * 4. The fourth extension contains a vector of the values of the incident
- *    radius (0.01 <= radius-r_horizon <= 1000).
- * 5. In the following extensions the functions are defined, each extension is
- *    for a particular value of r_horizon, each row is for a particular value of
- *    height and each element is either for a particular value of inclination
- *    (dWadWo) or incident radiation (the rest of the functions).
- * 6. Each of these extensions has five columns. In each column, a particular
- *    function is stored - dWadWo, g-factor, cosine of the local incident angle,
- *    azimuthal incident angle and dWadSd, respectively.
- * -------------------------------------------
+ * -----------------------------------------------------------------------------
  *
  * reflspectra.fits
  *
- * Dependence of the reflection coefficients on the angle of incidence, angle
+ * The reflection spectra dependent on the angle of incidence, angle
  * of emission and emission azimuthal angle is stored in this FITS file.
  * The emission is induced by a power-law incident radiation. Values were
  * computed by the Monte Carlo simulations of Compton scattering,
  * for details see Matt, Perola & Piro (1991). The new tables were computed 
- * by NOAR code (see ???). The reflected radiation depends on the photon index
- * of the incident radiation.
- * There are several binary extensions in this fits file:
- * - the first extension contains energy values in keV where the coefficients
+ * by NOAR code. The reflected radiation depends on the photon index of the 
+ * incident radiation.
+ * 
+ * There are several binary extensions in this FITS file:
+ * - the first extension contains energy values in keV where the spectra
  *   are computed, currently the interval from 0.8 to 100 keV is covered
  * - the second extension contains the values of the relative azimuthal angle of
  *   the incident and emitted photon
@@ -197,31 +138,21 @@
  * - the fourth extension contains the values of the cosine of the emission
  *   angles
  * - the fifth extension contains the values of the photon indices of the
- *   incident powerlaw, currently there are tables only for Gamma  = 2.0
+ *   incident powerlaw
  * - in the following extensions the reflection coefficients are stored, each
- *   extension is for a particular value of PhoIndex, here values of the
- *   coefficients are stored as a 4D array for different incident angles,
- *   and for different angles of emission, azimuthal emission angle and energy
- *   in fortran 77:
- *     memr(f+ie-1+ne*(iazim-1)+ne*nazim*(icosi-1)+ne*nazim*ncosi*(icose-1))
- *   in c: f[icose][icosi][iazim][ie]
+ *   extension is for a particular value of photon index Gamma, here values of 
+ *   the spectra are stored as a 4D array for different incident and emission
+ *   angles as well relative azimuthal emission angle and energy, i.e.
+ *   f[icose][icosi][iazim][ie]
  *
- *==============================================================================
- *
- * NB: accuracy vs. speed trade off depends mainly on: nrad, nphi
- *
- *
+ *******************************************************************************
+ * 
  * 13.12.2007. changed to work with rene's tables of cold disc
- *             the result is not much smooth though
  * 27. 8.2009  changed to work with new tables with azimuthal dependence
  * 12.11.2009  changed to work with new lamp-post tables, we can fit for height
  *             as well now
  *
- *==============================================================================
- */
-
-/*******************************************************************************
-*******************************************************************************/
+ ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -249,18 +180,18 @@ char   initstr[0] = "";
 int    ie;
 
 param[ 0] = 1.;         // a/M
-param[ 1] = 80.;        // thetaO
+param[ 1] = 30.;        // thetaO
 param[ 2] = 1.;         // rin
 param[ 3] = 1.;         // ms
 param[ 4] = 400.;       // rout
 param[ 5] = 0.;         // phi0
 param[ 6] = 360.;       // dphi
-param[ 7] = 0.05;         // M/M8
-param[ 8] = 2.5;         // height
+param[ 7] = 1.;         // M/M8
+param[ 8] = 3.;         // height
 param[ 9] = 2.;         // PhoIndex
 param[10] = 0.001;      // L/Ledd
 param[11] = 1.;         // Np:Nr
-param[12] = 3.;        // line
+param[12] = 3.;         // line
 param[13] = 300.;       // Ec
 param[14] = -6.;        // alpha
 param[15] = 0.;         // beta

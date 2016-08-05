@@ -1,347 +1,359 @@
 /*
-ide - Integrating Disc Emission
-C integration subroutine for XSPEC
-
-ref. Dovciak M., Karas V., Yaqoob T. (2004)
--------------------------------------------
-REFERENCES:
-
-Dovciak M., Karas V. & Yaqoob, T. (2004). An extended scheme for fitting X-ray
-data with accretion disk spectra in the strong gravity regime. ApJS, 153, 205.
-
-Dovciak M., Karas V., Martocchia A., Matt G. & Yaqoob T. (2004). XSPEC model
-to explore spectral features from black hole sources. In Proc. of the workshop
-on processes in the vicinity of black holes and neutron stars. S.Hledik &
-Z.Stuchlik, Opava. In press. [astro-ph/0407330]
-
-Dovciak M. (2004). Radiation of accretion discs in strong gravity. Faculty of
-Mathematics and Physics, Charles University, Prague. PhD thesis.
-[astro-ph/0411605]
--------------------------------------------
-
-This subroutine integrates local emission and local Stokes parameters
-for (partially) polarized emission of the accretion disc near rotating
-(Kerr) black hole (characterized by angular momentum a/M) for an observer
-with inclination angle theta_o.
-
-Six transfer functions are needed for the integration:
-a) delay (only for nonstationary disc emission, e.g. falling spot),
-b) g-factor,
-c) cosine of the local emission angle (this is needed only when disc
-   emission depends on it),
-d) lensing,
-e) change of polarization angle (only needed for Stokes parameters)
-f) azimuthal emission angle (only needed when emission depends on this angle)
-These functions differ for different a/M and theta_o. They are read
-and interpolated for particular a/M and theta_o from the fits file called
-'KBHtablesNN.fits', where NN is '00', '01', '02',... The format of this fits
-file is described in detail below.
-
-By 'local' it is meant 'with respect to the local inertial frame
-connected with the fluid in the accretion disc' everywhere in this code
-(local emission, local angle of emitted ray, local disc normal, ...).
-The local frame should be defined with each KBHtablesNN.fits because some of
-the transfer functions are calculated with respect to it (g-factor, cosine).
-
-
-The subroutine 'ide' has 10 parameters:
-ear - array of energy bins (same as 'ear' for local XSPEC models)
-ne  - number of energy bins (same as 'ne' for local XSPEC models)
-nt  - number of grid points in time (nt=1 means stationary model)
-far(ne,nt) - array of photon number density flux per bin
-             (same as 'photar' for local XSPEC models but with time
-              resolution)
-qar(ne,nt) - array of Stokes parameter Q divided by energy
-             ("photon number density flux per bin for Stokes parameter Q")
-           - it characterizes a linear polarization perpendicular or
-             parallel to the disc
-uar(ne,nt) - array of Stokes parameter U divided by energy
-             ("photon number density flux per bin for Stokes parameter U")
-           - it characterizes a linear polarization in the direction +45
-             (if positive) or -45 degrees (if negative) with the direction
-             perpendicular to the disc (the angle +45 means that when we are
-             looking towards the coming emitted light beam, the direction of
-             polarization is 45 degrees counter-clockwise from the "up"
-             direction...)
-var(ne,nt) - array of Stokes parameter V divided by energy
-             ("photon number density flux per bin for Stokes parameter V")
-           - it characterizes circular polarization - counter-clockwise
-             (right-handed) if positive and clockwise (left-handed) if
-             negative
-ide_param  - 20 more parameters needed for integration (explained below)
-emissivity - name of an external emissivity subroutine, where local emission
-             of the disc is defined (explained in detail below)
-ne_loc - number of points (in energies) where local photon number density flux
-         (per keV) is defined in emissivity subroutine
-
-For an example on how to use 'ide' and 'emissivity' subroutines in local models
-see e.g. black-body model "xskyB1Bphen.f".
-
--------------------------------------------
-ide_param:
-
-ide_param[0]: am     - black hole angular momentum (0 <= am <= 1)
-ide_param[1]: thetaO - observer inclination in degrees (0-pole, 90-equator)
-ide_param[2]: rin    - inner edge of non-zero disc emissivity (GM/c^2)
-(int) ide_param[3]:  ms - if r_in < r_ms, whether to integrate from r_in (ms=0)
-                          or from marginally stable orbit (MSO)
-                          (ms=1, i.e. zero emissivity below MSO)
-ide_param[4]: rout - outer edge of non-zero disc emissivity (GM/c^2)
-                   - if rin > rout => zero total flux
-ide_param[5]: phi0 - lower azimuth of non-zero disc emissivity (deg)
-                     -180 <= phi0 <= 180 (but may be any other angle too)
-ide_param[6]: dphi -> (phi0+dphi) = upper azimuth of non-zero disc emissivity
-                     dphi <= 360 (deg)
-(int) ide_param[7]:  nrad      - number of grid points in radius
-(int) ide_param[8]:  rdivision - type of division in r integration
-                                 (0-equidistant, 1-exponential = more points
-                                  closer to the inner edge)
-(int) ide_param[9]: nphi     - number of grid points in azimuth
-(int) ide_param[10]: smooth  - whether to smooth the resulting spectrum
-                               (0-no, 1-yes)
-ide_param[11]: normal - how to normalize the final spectrum
-                        = 0. - normalization to unity (total flux=1.)
-                               (e.g. for line)
-                        > 0. - normalization to the flux at 'normal' keV
-                               (usually used for continuum)
-                        = -1. - final spectrum is not normalized in ide
-                        = -2. - final spectrum is normalized to have maximum
-                                photon number density flux equal unity
-ide_param[12]:       zshift - overall Doppler shift
-(int) ide_param[13]: ntable - table of transfer functions used in the model
-                              (defines fits file with tables), 0<= ntable <= 99
-(int) ide_param[14]: edivision - type of division in local energies
-                                 (0-equidistant, 1-exponential = more points
-                                  with lower energy)
-(int) ide_param[15]: periodic  - local emissivity is periodic (1) or not (0)
-                               - need not to be set if nt=1
-ide_param[16]:       dt - time step (in GM/c^2)
-                        - need not to be set if nt=1
-(int) ide_param[17]: polar - whether polarization from fits tables is needed
-                             1 - yes, 0 - no
-                             (we usually do not need polarization in XSPEC and
-                              so we need not to read this information from FITS
-                              file - the tables will occupy less space in
-                              memory)
-ide_param[18]: delay_r   - (r-r_plus) - delay at this coord. will be
-                           subtracted in non-stationary calculations
-ide_param[19]: delay_phi - phi - delay in degrees at this BL. coord. will be
-                           subtracted in non-stationary calculations
-  ---> the last two parameters are used if we want to set the beginning of
-       time axis, e.g. for the moment when photons emitted from the spot
-       that was at the closest approach to the observer come to the observer
-ide_param[20]: nthreads  - how many threads should be used for computations
-ide_param[21]: alpha  - position of the cloud in alpha impact parameter (in GM/c^2)
-ide_param[22]: beta   - position of the cloud in beta impact parameter (in GM/c^2)
-ide_param[23]: rcloud - radius of the cloud (in GM/c^2)
-(int) ide_param[24]: observed_flux - whether the flux defined in emissivity 
-                                     subroutine is local one (0) or the observed 
-                                     one (1)
-
-NOTE: accuracy vs. speed trade off depends mainly on: nrad, nphi
-
--------------------------------------------
-emissivity subroutine:
-
-      emissivity(ear_loc,ne_loc,nt,far_loc,qar_loc,uar_loc,var_loc,
-    $            rnow,pnow,cosine,phiphoton,alpha_o,beta_o,delay,g)
-
-External emissivity subroutine has 8 parameters:
-ear_loc(0:ne_loc) - array of local energies where local photon number density
-                    flux far_loc is defined
-                  - if ear_loc(0)>0 then the local emissivity consists of two
-                    energy regions where flux is non-zero, local flux between
-                    these regions is zero, this applies only for stationary
-                    models, i.e. nt=1
-                  - ear_loc(0) defines number of points in local energy where
-                    the local flux is zero (in the middle region), this
-                    applies only for stationary models, i.e. nt=1
-ne_loc - number of points where local photon number density flux is defined
-         (in energies)
-nt     - number of grid points in time (nt=1 means stationary model)
-far_loc(0:ne_loc,nt) - array of local photon number density flux (per keV)
-                       for 'each time'
-                     - if the local emissivity consists of two separate
-                       non-zero regions (i.e. ear_loc > 0.) then far_loc(0,1)
-                       is the index of the last point of the first non-zero
-                       local energy region (used only in stationary case with
-                       nt=1)
-                     - if the local emissivity is zero for a certain time
-                       (jt) for all energies (je) we can put far_loc(ne_loc,jt)=0
-                       and then we exclude adding zeros to the
-                       total flux (speeding up the computations),
-                       if local flux for jt is NOT zero for all energies
-                       je=1..ne_loc then far_loc(ne_loc,jt) MUST BE NONZERO!!!
----
-NOTE: in the following dener means:
-      dener  - width of the equidistant interval between
-               neighbouring points in local energy (for edivision=0) or in
-               logarithm of local energy (for edivision=1)
-
-Example: ear_loc(0)=5
-         far_loc(0,1)=12 and nt=1
-
-=> this means that:
-   - ear_loc(1)..ear_loc(12) is the first local energy region with non-zero
-     local flux far_loc(1,1)..far_loc(12,1)
-   - then there should be 5 points in local energy where local flux is zero
-   - ear_loc(13)..ear_loc(ne_loc) is the second local energy region with
-     non-zero local flux far_loc(13,1)..far_loc(ne_loc,1)
-   - while ear_loc(i)-ear_loc(i-1) = dener if edivision = 0 or
-     log10(ear_loc(i))-log10(ear_loc(i-1) = dener if edivision = 1
-     for i!=13
-     for i=13 it is:
-     ear_loc(13)-ear_loc(12) = (ear_loc(0)+1)*dener if edivision = 0 or
-     log10(ear_loc(13))-log10(ear_loc(12)) = (ear_loc(0)+1)*dener
-     (i.e. we are skipPIng the zero-local-emissivity region)
----
-qar_loc(ne_loc,nt) - array of local Stokes parameter Q divided by local
-                     energy for 'each time' ("local photon number density
-                     flux per keV for Stokes parameter Q")
-                   - it characterizes a linear polarization perpendicular
-                     or parallel to the disc in local frame
-uar_loc(ne_loc,nt) - array of local Stokes parameter U divided by local
-                     energy for 'each time' ("local photon number density
-                     flux per keV for Stokes parameter U")
-                   - it characterizes a linear polarization in the direction
-                     +45 (if positive) or -45 (if negative) degrees with the
-                     direction perpendicular to the disc in local frame (the
-                     angle +45 means that when we are looking toward coming
-                     emitted light beam, the direction of polarization is 45
-                     degrees counter-clockwise from the "up" direction...)
-var_loc(ne_loc,nt) - array of local Stokes parameter V divided by local
-                     energy for 'each time' ("local photon number density
-                     flux per keV for Stokes parameter V")
-                   - it characterizes circular polarization -
-                     counter-clockwise (right-handed) if positive and
-                     clockwise (left-handed) if negative in local frame
-rnow   - radius where the local photon flux far_loc (or Stokes parameters
-         qar_loc, uar_loc, var_loc) at local energy ear_loc is wanted
-pnow   - azimuth where the local photon flux far_loc (or Stokes parameters
-         qar_loc, uar_loc, var_loc)at local energy ear_loc is wanted
-cosine - cosine of the local angle between emitted ray and local disc normal
-phiphoton  - angle between emitted ray projected onto the plane of the disc
-             (in the local frame of the moving disc) and radial component of
-             the local tetrade (in rad)
-
-IMPORTANT NOTE: while integrated arrays far, qar and var are evaluated per
-                energy bin (i.e. these quantities are integrated over energy
-                bin), local arrays far_loc, qar_loc and var_loc are evaluated
-                per keV (i.e. they are NOT integrated over energy bin)!!!
-
--------------------------------------------
-Transfer functions in the fits file KBHtablesNN.fits
-
-Transfer functions are defined here as tables for different values of horizon
-(r_horizon, not a/M!) and observer inclination angle theta_o. Each table
-consists of values of particular transfer function for different r (rows) and
-phi (columns) coordinates. Particular r_horizon, theta_o, r and phi where the
-functions are given are defined at the beginning of the fits file as vectors.
-
-Definition of KBHtablesNN.fits:
-0. All of the extensions defined below are binary.
-1. The first extension contains 6 integers defining which of the transfer
-   functions are present in the tables. The integers correspond to delay,
-   g-factor, cosine, lensing, polarization angle and azimuthal emission angle,
-   respectively. Value 0 means that the function is not present in the tables,
-   value 1 means it is.
-2. The second extension contains vector of horizon values.
-   (1.00 <= r_horizon <= 2.00)
-3. The third extension contains vector of values of the observer's
-   inclination angle in degrees. (0 <= theta_o <= 90, 0-pole, 90-disc)
-4. The fourth extension contains vector of (r-r_horizon) values.
-   Note it is not r-coordinate itself but 'coordinate distance' from the
-   horizon!!! (0 <= r < infinity, 0 - horizon)
-5. The fifth extension contains vector of phi values. Subroutine ide expects
-   phi to be Kerr ingoing coordinate, not Boyer-Lindquist one!
-   (0 <= phi <= 2*PI)
-6. All previous vectors have to have values sorted in increasing order!
-7. In following extensions the transfer functions are defined, each extension
-   is for particular value of r_horizon and theta_o. The values of r_horizon
-   and theta_o are changing with each extension in the following order:
-   r_horizon[1] x theta_o[1],
-   r_horizon[1] x theta_o[2],
-   r_horizon[1] x theta_o[3],
-   ...
-   ...
-   r_horizon[2] x theta_o[1],
-   r_horizon[2] x theta_o[2],
-   r_horizon[2] x theta_o[3],
-   ...
-   ...
-8. Each of these extensions has the same number of columns (up to 6). In each
-   column a particular transfer function is defined - delay, g-factor, cosine,
-   lensing, polarization angle and azimuthal emission angle, repsectively.
-   The order of the functions is important but some of the functions may be
-   missing as defined in the first extension (see 1. above).
-   delay - Boyer-Lindquist time that elapses between emission of a photon from
-           the disc and absorption of the photon by the observers eye at
-           infinity minus a particular constant (so that delay = zero close to
-           the x-axis in the equatorial plane, observer is at infinity in the
-           direction of y-axis with x=0, the black hole is at x=y=z=0)
-   g-factor - ratio of the energy of a photon received by the observer at
-              infinity to the local energy of the same photon when emitted
-              from an accretion disc
-   cosine - cosine of the local angle between the emitted light ray and local
-            disc normal
-   lensing - ratio of the area at infinity perpendicular to the light rays
-             through which photons come to the area on the disc from which
-             these photons are emitted
-   polarization angle
-    - if the light emitted from the disc is linearly polarized then the
-      direction of polarization will be changed by this angle in infinity -
-      counter-clockwise if positive, clockwise if negative (we are looking
-      toward the coming emitted beam), on the disc we measure the angle of
-      polarization with respect to "up" direction perpendicular to the disc
-      with respect to the local rest frame, in infinity we also measure the
-      angle of polarization with respect to "up" direction perpendicular to
-      the disc - "polarization angle" is the difference between these two
-      angles
-   phi_photon - angle between emitted ray projected onto the plane of the disc
-               (in the local frame of the moving disc) and radial component of
-                the local tetrade (in rad)
-9. Each row corresponds to a particular value of r (see 4. above).
-10. Each element of an extension is a vector. Each element of this vector
-    corresponds to a particular value of phi (see 5. above).
-
-For an example of a fits file with transfer functions see KBHtables00.fits.
-
------
-KBHtables00.fits
-
-These tables are computed for an optically thick and geometrically thin
-accretion disc near Kerr black hole. The medium between the disc and the
-observer is supposed to be optically thin for the wavelengths one is
-interested in. Therefore ray tracing in vacuum Kerr space-time could be used
-for calculating the transfer functions.
-
-When calculating the transfer functions, it was supposed that the fluid in
-the disc rotates on stable circular (free) orbits above marginally stable
-orbit (MSO). Below MSO the fluid is freely falling and has the same energy and
-angular momentum as the matter which is on the MSO.
-
-The observer is placed in the direction phi = PI/2. The black hole rotates
-counter-clockwise.
-
-- all of the transfer functions are present in these tables
-- values of r_horizon are: 1.00, 1.05, 1.10, 1.15, ..., 1.90, 1.95, 2.00
-  (21 elements)
-- values of theta_o are: 0.1, 1, 5, 10, 15, 20, 25, ..., 75, 80, 85, 89
-  (20 elements)
-- values of r are exponentially increasing from 0 to 999 (150 elements)
-- values of phi are equidistantly spread from 0 to 2*PI rad with much denser
-  cover 'behind' the black hole, i.e. near phi = 3/2*PI (because some of the
-  transfer functions - cosine, lensing - are changing heavily in this area
-  for higher inclination angles (theta_o > 70 deg)).
-  (200 elements)
-
-********************************************************************************
-18.5.2005 interpolation of g-factor changed from bilinear to bicubic
-26.9.2006 better time integration
-12.3.2010 possibility to have a<0 added
-22.3.2010 computing in threads added
-25.1.-4.2.2014 conversion from f77 to c
-*******************************************************************************/
+ * ide - Integrating Disc Emission for KYN package of XSPEC models
+ *     - C integration subroutine for Keplerian dics emission
+ * 
+ * ref. Dovciak M., Karas V., Yaqoob T. (2004)
+ * -----------------------------------------------------------------------------
+ * OTHER REFERENCES:
+ * 
+ * Dovciak M., Karas V. & Yaqoob, T. (2004). An extended scheme for fitting 
+ * X-ray data with accretion disk spectra in the strong gravity regime. 
+ * ApJS, 153, 205.
+ * 
+ * Dovciak M., Karas V., Martocchia A., Matt G. & Yaqoob T. (2004). XSPEC model
+ * to explore spectral features from black hole sources. In Proc. of the 
+ * workshop on processes in the vicinity of black holes and neutron stars. 
+ * S.Hledik & Z.Stuchlik, Opava. In press. [astro-ph/0407330]
+ * 
+ * Dovciak M. (2004). Radiation of accretion discs in strong gravity. Faculty of
+ * Mathematics and Physics, Charles University, Prague. PhD thesis.
+ * [astro-ph/0411605]
+ * -----------------------------------------------------------------------------
+ * 
+ * This subroutine integrates local emission and local Stokes parameters
+ * for (partially) polarized emission of the accretion disc near rotating
+ * (Kerr) black hole (characterized by angular momentum a/M) for an observer
+ * with inclination angle theta_o.
+ * 
+ * Six transfer functions are needed for the integration:
+ * a) delay (only for non-stationary disc emission, e.g. orbiting spot),
+ * b) g-factor (energy shift),
+ * c) cosine of the local emission angle (this is needed only when disc
+ *    emission depends on it),
+ * d) lensing,
+ * e) change of polarization angle (only needed for Stokes parameters)
+ * f) azimuthal emission angle (only needed when emission depends on this angle)
+ * 
+ * These functions differ for different spin, a/M, and inclination, theta_o. 
+ * Some are read and interpolated for particular a/M and theta_o from the fits 
+ * file called 'KBHtables80.fits', others are computed from other functions
+ * stored in this FITS file. The format of this fits file is described in detail
+ * below.
+ * 
+ * By 'local' it is meant 'with respect to the local inertial frame
+ * connected with the fluid in the accretion disc' everywhere in this code
+ * (local emission, local angle of emitted ray, local disc normal, ...).
+ * The local frame is defined in the code not in the tables in KBHtables80.fits
+ * file.
+ * 
+ * The subroutine 'ide' has 10 parameters:
+ * ear - array of energy bins (same as 'ear' for local XSPEC models)
+ * ne  - number of energy bins (same as 'ne' for local XSPEC models)
+ * nt  - number of grid points in time (nt=1 means stationary model)
+ * far[ne,nt] - array of photon number density flux per bin
+ *              (same as 'photar' for local XSPEC models but with time
+ *               resolution)
+ * qar[ne,nt] - array of Stokes parameter Q divided by energy
+ *              ("photon number density flux per bin for Stokes parameter Q")
+ *            - it characterizes a linear polarization perpendicular or
+ *              parallel to the disc
+ * uar[ne,nt] - array of Stokes parameter U divided by energy
+ *              ("photon number density flux per bin for Stokes parameter U")
+ *            - it characterizes a linear polarization in the direction +45
+ *              (if positive) or -45 degrees (if negative) with the direction
+ *              perpendicular to the disc (the angle +45 means that when we are
+ *              looking towards the coming emitted light beam, the direction of
+ *              polarization is 45 degrees counter-clockwise from the "up"
+ *              direction...)
+ * var[ne,nt] - array of Stokes parameter V divided by energy
+ *              ("photon number density flux per bin for Stokes parameter V")
+ *            - it characterizes circular polarization - counter-clockwise
+ *              (right-handed) if positive and clockwise (left-handed) if
+ *              negative
+ * ide_param  - 25 more parameters needed for integration (explained below)
+ * emissivity - name of an external emissivity subroutine, where local emission
+ *              of the disc is defined (explained in detail below)
+ * ne_loc - number of points (in energies) where local photon number density 
+ *          flux (per keV) is defined in emissivity subroutine
+ * 
+ * For an example on how to use 'ide' and 'emissivity' subroutines in local 
+ * models see e.g. relativistic line model "xsKYNrline.c".
+ *
+ * -----------------------------------------------------------------------------
+ * 
+ * ide_param:
+ * 
+ * ide_param[0]: am     - black hole angular momentum (-1 <= am <= 1)
+ * ide_param[1]: thetaO - observer inclination in degrees (0-pole, 90-equator)
+ * ide_param[2]: rin    - inner edge of non-zero disc emissivity (in GM/c^2 or 
+ *                        in r_mso)
+ * (int) ide_param[3]:  ms - switch that defines the meaning/units of rin, rout
+ *                           0 - we integrate from inner edge = rin
+ *                           1 - if the inner edge of the disc is below 
+ *                               marginally stable orbit then we integrate
+ *                               emission above MSO only
+ *                           2 - we integrate from inner edge given in units of 
+ *                               MSO, i.e. inner edge = rin * r_mso (the same 
+ *                               applies for outer edge)
+ * ide_param[4]: rout - outer edge of non-zero disc emissivity (in GM/c^2 or in 
+ *                      r_mso)
+ *                    - if rin > rout => zero total flux
+ * ide_param[5]: phi0 - lower azimuth of non-zero disc emissivity (deg)
+ *                      -180 <= phi0 <= 180 (but may be any other angle too)
+ * ide_param[6]: dphi - (phi0+dphi) = upper azimuth of non-zero disc emissivity
+ *                      0 <= dphi <= 360 (deg)
+ * (int) ide_param[7]:  nrad      - number of grid points in radius
+ * (int) ide_param[8]:  rdivision - type of division in radial integration
+ *                      0 -> equidistant radial grid (constant linear step)
+ *                      1 -> exponential radial grid (constant logarithmic step)
+ * (int) ide_param[9]:  nphi    - number of grid points in azimuth
+ * (int) ide_param[10]: smooth  - whether to smooth the resulting spectrum
+ *                                (0-no, 1-yes)
+ * ide_param[11]: normal - how to normalize the final spectrum
+ *                         = 0.  - normalization to unity (total flux=1.)
+ *                                 (e.g. for line)
+ *                         > 0.  - normalization to the flux at 'normal' keV
+ *                                 (usually used for continuum)
+ *                         = -1. - final spectrum is not normalized in ide
+ *                         = -2. - final spectrum is normalized to have maximum
+ *                                 photon number density flux equal unity
+ * ide_param[12]:       zshift - overall Doppler shift
+ * (int) ide_param[13]: ntable - table of transfer functions used in the model
+ *                               (defines fits file with tables),
+ *                               0<= ntable <= 99
+ * (int) ide_param[14]: edivision - type of division in local energies
+ *                                  (0-equidistant, 1-exponential, i.e. more
+ *                                   points with lower energy)
+ * (int) ide_param[15]: periodic  - has to be set to 1 for periodic emission
+ *                                  (e.g. orbiting spot) and 0 for all other 
+ *                                  cases
+ *                                - need not to be set if nt=1
+ * ide_param[16]:       dt - time step (in GM/c^2)
+ *                         - need not to be set if nt=1
+ * (int) ide_param[17]: polar - whether polarization from fits tables is needed
+ *                              1 - yes, 0 - no
+ *                              (we usually do not need polarization in XSPEC
+ *                              and so we need not to read this information from
+ *                              FITS file - the tables will occupy less space in
+ *                              memory)
+ * ide_param[18]: delay_r   - (r-r_plus) - delay at this radial coord. will be 
+ *                                         subtracted in non-stationary 
+ *                                         calculations
+ * ide_param[19]: delay_phi - phi - delay at this azimuthal BL. coord. 
+ *                                  (given in degrees) will be subtracted in 
+ *                                  non-stationary calculations
+ * ---> the last two parameters are used if we want to set the beginning of
+ *      time axis, e.g. for the moment when photons emitted from the spot
+ *      that was at the closest approach to the observer come to the observer
+ * ide_param[20]: nthreads  - how many threads should be used for computations
+ * ide_param[21]: alpha  - position of the cloud in alpha impact parameter 
+ *                         (in GM/c^2)
+ * ide_param[22]: beta   - position of the cloud in beta impact parameter 
+ *                         (in GM/c^2)
+ * ide_param[23]: rcloud - radius of the cloud (in GM/c^2)
+ *                       - if negative, only the emission transmitted through
+ *                         the cloud is taken into account
+ * (int) ide_param[24]: observed_flux - whether the flux defined in emissivity 
+ *                                      subroutine is local one (0) or the
+ *                                      observed one (1)
+ * 
+ * NOTE: accuracy vs. speed trade off depends mainly on: nrad, nphi
+ * 
+ * -----------------------------------------------------------------------------
+ * 
+ * emissivity subroutine:
+ * 
+ * emissivity(ear_loc,ne_loc,nt,far_loc,qar_loc,uar_loc,var_loc,
+ *            rnow,pnow,cosine,phiphoton,alpha_o,beta_o,delay,g)
+ * 
+ * External emissivity subroutine has 14 parameters:
+ * ear_loc[ne_loc] - array of local energies where local photon number density
+ *                     flux far_loc is defined, ear_loc[ne_loc] is not used
+ * ne_loc - number of points where local photon number density flux is defined
+ *          (in energies)
+ * nt     - number of grid points in time (nt=1 means stationary model)
+ * far_loc[ne_loc+1,nt] - array of local photon number density flux (per keV)
+ *                        for 'each time'
+ *                      - if the local emissivity is zero for a certain time
+ *                        (jt) for all energies we can put far_loc[ne_loc,jt]=0
+ *                        and then we exclude adding zeros to the
+ *                        total flux (speeding up the computations), if local 
+ *                        flux for jt is NOT zero for all energies then 
+ *                        far_loc[ne_loc,jt] MUST BE NONZERO!!!
+ * qar_loc[ne_loc,nt] - array of local Stokes parameter Q divided by local
+ *                      energy for 'each time' ("local photon number density
+ *                      flux per keV for Stokes parameter Q")
+ *                    - it characterizes a linear polarization perpendicular
+ *                      or parallel to the disc in local frame
+ * uar_loc[ne_loc,nt] - array of local Stokes parameter U divided by local
+ *                      energy for 'each time' ("local photon number density
+ *                      flux per keV for Stokes parameter U")
+ *                    - it characterizes a linear polarization in the direction
+ *                      +45 (if positive) or -45 (if negative) degrees with the
+ *                      direction perpendicular to the disc in local frame (the
+ *                      angle +45 means that when we are looking toward coming
+ *                      emitted light beam, the direction of polarization is 45
+ *                      degrees counter-clockwise from the "up" direction...)
+ * var_loc[ne_loc,nt] - array of local Stokes parameter V divided by local
+ *                      energy for 'each time' ("local photon number density
+ *                      flux per keV for Stokes parameter V")
+ *                    - it characterizes circular polarization -
+ *                      counter-clockwise (right-handed) if positive and
+ *                      clockwise (left-handed) if negative in local frame
+ * rnow   - radius where the local photon flux far_loc (or Stokes parameters
+ *          qar_loc, uar_loc, var_loc) at local energy ear_loc is wanted
+ * pnow   - azimuth where the local photon flux far_loc (or Stokes parameters
+ *          qar_loc, uar_loc, var_loc)at local energy ear_loc is wanted
+ * cosine - cosine of the local angle between emitted ray and local disc normal
+ * phiphoton  - angle between emitted ray projected onto the plane of the disc
+ *              (in the local frame of the moving disc) and radial component of
+ *              the local tetrade (in rad)
+ * alpha_o - impact parameter alpha (x-coordinate on the sky of the observer), 
+ *           correspondent to light ray emitted from the rnow, pnow coordinates
+ *           on the disc, positive for approaching side of the disc (in GM/c^2)
+ * beta_o  - impact parameter beta  (y-coordinate on the sky of the observer), 
+ *           correspondent to light ray emitted from the rnow, pnow coordinates
+ *           on the disc, positive in up direction, i.e. above the disc 
+ *           (in GM/c^2)
+ * delay   - delay with which photon arrives at the observer from the rnow, pnow
+ *           coordinates on the disc
+ * g - g-factor, overall redshift between the observed energy and local energy
+ *     of the photon when emitted from the rnow, pnow coordinates on the disc, 
+ *     g=E_observed/E_local
+ *
+ * IMPORTANT NOTE: while integrated arrays far, qar and var are evaluated per
+ *                 energy bin (i.e. these quantities are integrated over energy
+ *                 bin), local arrays far_loc, qar_loc and var_loc are evaluated
+ *                 per keV (i.e. they are NOT integrated over energy bin)!!!
+ * 
+ * -----------------------------------------------------------------------------
+ * 
+ * Functions in the fits file KBHtablesNN.fits
+ * 
+ * Functions stored in this file are defined here as tables for different values
+ * of horizon (r_horizon, not a/M!) and observer inclination angle theta_o. 
+ * Each table consists of values of particular function for different r (rows) 
+ * and phi (columns) coordinates. Particular r_horizon, theta_o, r and phi where
+ * the functions are given are defined at the beginning of the fits file as 
+ * vectors.
+ * 
+ * Definition of KBHtablesNN.fits:
+ * 0. All of the extensions defined below are binary.
+ * 1. The first extension contains 5 integers defining which of the functions
+ *    are present in the tables. The integers correspond to alpha,
+ *    beta, pr, delay and lensing, respectively. Value 0 means that the 
+ *    function is not present in the tables, value 1 means it is.
+ * 2. The second extension contains vector of horizon values.
+ *    (1.00 <= r_horizon <= 2.00)
+ * 3. The third extension contains vector of values of the observer's
+ *    inclination angle in degrees. (0 <= theta_o <= 90, 0-pole, 90-disc)
+ * 4. The fourth extension contains vector of (r-r_horizon) values.
+ *    Note it is not r-coordinate itself but relative 'coordinate distance' from
+ *    the horizon!!! (0 <= r < infinity, 0 - horizon)
+ * 5. The fifth extension contains vector of phi values. Subroutine ide expects
+ *    phi to be Kerr ingoing coordinate, not Boyer-Lindquist one!
+ *    (0 <= phi <= 2*PI)
+ * 6. All previous vectors have to have values sorted in increasing order!
+ * 7. In following extensions the functions are defined, each extension
+ *    is for particular value of r_horizon and theta_o. The values of r_horizon
+ *    and theta_o are changing with each extension in the following order:
+ *    r_horizon[1] x theta_o[1],
+ *    r_horizon[1] x theta_o[2],
+ *    r_horizon[1] x theta_o[3],
+ *    ...
+ *    ...
+ *    r_horizon[2] x theta_o[1],
+ *    r_horizon[2] x theta_o[2],
+ *    r_horizon[2] x theta_o[3],
+ *    ...
+ *    ...
+ * 8. Each of these extensions has the same number of columns (up to 5). In each
+ *    column a particular function is defined - alpha, beta, pr, delay and 
+ *    lensing, repsectively.
+ *    The order of the functions is important but some of the functions may be
+ *    missing as defined in the first extension (see 1. above).
+ * 
+ *    alpha - impact parameter alpha (x-coordinate on the sky of the observer), 
+ *            correspondent to light ray emitted from the r, phi coordinates
+ *            on the disc, positive for approaching side of the disc (in GM/c^2)
+ *    beta  - impact parameter beta  (y-coordinate on the sky of the observer), 
+ *            correspondent to light ray emitted from the r, phi coordinates
+ *            on the disc, positive in up direction, i.e. above the disc 
+ *            (in GM/c^2)
+ *    pr    - the radial component of the photon momentum at the disc
+ *    delay - Boyer-Lindquist time that elapses between emission of a photon 
+ *            from the disc and absorption of the photon by the observers eye at
+ *            infinity minus a particular constant (so that delay = zero close 
+ *            to the x-axis in the equatorial plane, observer is at infinity in 
+ *            the direction of y-axis with x=0, the black hole is at x=y=z=0)
+ *    lensing - ratio of the flux tube cross-section at infinity to the flux 
+ *              tube cross-section at the disc
+ * 
+ * The following functions are computed from these in the code:
+ * 
+ * g-factor - ratio of the energy of a photon received by the observer at
+ *            infinity to the local energy of the same photon when emitted
+ *            from an accretion disc
+ * cosine - cosine of the local angle between the emitted light ray and local
+ *          disc normal
+ * phi_photon - angle between emitted ray projected onto the plane of the disc
+ *              (in the local frame of the moving disc) and radial component of
+ *               the local tetrade (in rad)
+ * polarization angle
+ *  - if the light emitted from the disc is linearly polarized then the
+ *    direction of polarization will be changed by this angle in infinity -
+ *    counter-clockwise if positive, clockwise if negative (we are looking
+ *    toward the coming emitted beam), on the disc we measure the angle of
+ *    polarization with respect to "up" direction perpendicular to the disc
+ *    with respect to the local rest frame, in infinity we also measure the
+ *    angle of polarization with respect to "up" direction perpendicular to
+ *    the disc - "polarization angle" is the difference between these two
+ *    angles
+ * 
+ * 9. Each row corresponds to a particular value of r (see 4. above).
+ * 10. Each element of an extension is a vector. Each element of this vector
+ *     corresponds to a particular value of phi (see 5. above).
+ * 
+ * For an example of a FITS file defined in this way, see KBHtables80.fits.
+ * 
+ * -----------------------------------------------------------------------------
+ * 
+ * KBHtables80.fits
+ * 
+ * These tables are computed for an optically thick and geometrically thin
+ * accretion disc near Kerr black hole. The medium between the disc and the
+ * observer is supposed to be optically thin for the wavelengths one is
+ * interested in. Therefore ray tracing in vacuum Kerr space-time could be used
+ * for calculating the transfer functions.
+ * 
+ * When calculating the transfer functions, it was supposed that the fluid in
+ * the disc rotates on stable circular (free) orbits above marginally stable
+ * orbit (MSO). Below MSO the fluid is freely falling and has the same energy
+ * and angular momentum as the matter which is on the MSO.
+ * 
+ * The observer is placed in the direction phi = PI/2. The black hole rotates
+ * counter-clockwise.
+ * 
+ * - all of the functions are present in these tables
+ * - values of r_horizon are: 1.00, 1.05, 1.10, 1.15, ..., 1.90, 1.95, 2.00
+ *   (21 elements)
+ * - values of theta_o are: 0.1, 1, 5, 10, 15, 20, 25, ..., 75, 80, 85, 89
+ *   (20 elements)
+ * - values of r are exponentially increasing from 0 to 999 (150 elements)
+ * - values of phi are equidistantly spread from 0 to 2*PI rad with much denser
+ *   cover 'behind' the black hole, i.e. near phi = 3/2*PI (because some of the
+ *   functions, e.g. alpha, beta, lensing, are changing heavily in this area
+ *   for higher inclination angles (theta_o > 70 deg)). (200 elements)
+ * 
+ *******************************************************************************
+ *
+ * 18.5.2005 interpolation of g-factor changed from bilinear to bicubic
+ * 26.9.2006 better time integration
+ * 12.3.2010 possibility to have a<0 added
+ * 22.3.2010 computing in threads added
+ * 25.1.-4.2.2014 conversion from f77 to c
+ *
+ ******************************************************************************/
 
 //#include <stdio.h>
 

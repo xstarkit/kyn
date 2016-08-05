@@ -1,25 +1,24 @@
-/* KYNhrefl - general relativistic extension of the model hrefl(powerlaw)
- * C version of Fortran77 model subroutine for XSPEC
- *
+/* KYNhrefl - general relativistic extension of the XSPEC model hrefl(powerlaw)
+ *            model subroutine for XSPEC
+ * 
  * ref. Dovciak M., Karas V., Yaqoob T. (2004)
- * -------------------------------------------------------------------
- * REFERENCES:
- *
+ * -----------------------------------------------------------------------------
+ * OTHER REFERENCES:
+ * 
+ * Dovciak M., Karas V. & Yaqoob, T. (2004). An extended scheme for fitting 
+ * X-ray data with accretion disk spectra in the strong gravity regime. 
+ * ApJS, 153, 205.
+ * 
  * Dovciak M., Karas V., Martocchia A., Matt G. & Yaqoob T. (2004). XSPEC model
- * to explore spectral features from black hole sources.
- * In Proc. of the workshop on processes in the vicinity of black holes
- * and neutron stars. S.Hledik & Z.Stuchlik, Opava.
- * In press. [astro-ph/0407330]
- *
- * Dovciak M., Karas V. & Yaqoob, T. (2004). An extended scheme
- * for fitting X-ray data with accretion disk spectra
- * in the strong gravity regime. ApJS, 153, 205.
- *
+ * to explore spectral features from black hole sources. In Proc. of the 
+ * workshop on processes in the vicinity of black holes and neutron stars. 
+ * S.Hledik & Z.Stuchlik, Opava. In press. [astro-ph/0407330]
+ * 
  * Dovciak M. (2004). Radiation of accretion discs in strong gravity. Faculty of
  * Mathematics and Physics, Charles University, Prague. PhD thesis.
  * [astro-ph/0411605]
- * -------------------------------------------------------------------
- *
+ * -----------------------------------------------------------------------------
+ * 
  * Compton reflection model for an accretion disc around a Kerr black hole.
  * This model is based on an existing multiplicative HREFL model in combination
  * with the POWERLAW model. Local emission is the same as in HREFL*POWERLAW with
@@ -33,29 +32,31 @@
  *
  * All relativistic effects are taken into account. This subroutine calls
  * subroutine ide() for integrating local emission over the disc and uses the
- * fits file 'KBHtablesNN.fits' defining the transfer functions needed for the
- * integration. For details on ide() and the fits file see the subroutine ide().
+ * FITS file 'KBHtablesNN.fits' defining the transfer functions needed for the
+ * integration. For details on ide() and the FITS file see the subroutine ide()
+ * in xside.c.
  *
  * par1  ... a/M     - black hole angular momentum (-1 <= a/M <= 1)
  * par2  ... theta_o - observer inclination in degrees (0-pole, 90-disc)
  * par3  ... rin - inner edge of non-zero disc emissivity (in GM/c^2 or in 
  *                 r_mso)
- * par4  ... ms  - 0 - we integrate from inner edge = par3 
- *                 1 - if the inner edge of the disc is below marginally stable
- *                     orbit then we integrate emission above MSO only
- *                 2 - we integrate from inner edge given in units of MSO, i.e.
- *                     inner edge = par3 * r_mso (the same applies for outer 
- *                     edge)
+ * par4  ... ms  - switch that defines the meaning/units of rin, rout
+ *                 0: we integrate from inner edge = par3 
+ *                 1: if the inner edge of the disc is below marginally stable
+ *                    orbit then we integrate emission above MSO only
+ *                 2: we integrate from inner edge given in units of MSO, i.e.
+ *                    inner edge = par3 * r_mso (the same applies for outer 
+ *                    edge)
  * par5  ... rout  - outer edge of non-zero disc emissivity (in GM/c^2 or in 
  *                   r_mso)
  * par6  ... phi   - lower azimuth of non-zero disc emissivity (deg)
  * par7  ... dphi  - (phi + dphi) is upper azimuth of non-zero disc emissivity
  *                   0 <= dphi <= 360  (deg)
  * par8  ... PhoIndex  - photon index of primary power-law illumination
- * par9  ... q_out - power-law index for radial dependence of emissivity for
- *                   outer region, scales as r^(-q_out)
- * par10 ... q_in  - power-law index for radial dependence of emissivity for
- *                   inner region, scales as r^(-q_in)
+ * par9   ... q_out - power-law index for radial dependence of emissivity for
+ *                    outer region, scales as r^(-q_out)
+ * par10  ... q_in  - power-law index for radial dependence of emissivity for
+ *                   inner region, scales as rb^(q_in-q_out)*r^(-q_in)
  * par11 ... rb    - boundary between the region with power-law index q_out and
  *                   q_in
  *                 - if > 0 then the boundary is in units of MSO, i.e.
@@ -73,18 +74,20 @@
  *                     positive for approaching side of the disc)
  * par18 ... beta   - position of the cloud centre in GM/c^2 in beta coordinate
  *                    (beta being the impact parameter in theta direction, 
- *                     positive in up direction, i.e. away from the disc)
- * par19 ... rcloud - radius of the obscuring cloud
+ *                     positive in up direction, i.e. above the disc)
+ * par19 ... rcloud - radius of the obscuring cloud (in GM/c^2)
+ *                  - if negative, only the emission transmitted through
+ *                    the cloud is taken into account
  * par20 ... zshift - overall Doppler shift
- * par21 ... ntable - defines fits file with tables (0 <= ntable <= 99)
- *                    by default only the tables with ntable=80 are correct
- *                    for this model
+ * par21 ... ntable - table of relativistic transfer functions used in the model
+ *                    (defines fits file with tables), 0<= ntable <= 99
  * par22 ... nrad   - number of grid points in radius
  * par23 ... division - type of division in r integration
- *                      (0-equidistant, 1-exponential)
+ *                      0 -> equidistant radial grid (constant linear step)
+ *                      1 -> exponential radial grid (constant logarithmic step)
  * par24 ... nphi   - number of grid points in azimuth
  * par25 ... smooth - whether to smooth the resulting spectrum (0-no, 1-yes)
- * par26 ... Stokes - what should be stored in photar() array
+ * par26 ... Stokes - what should be stored in photar() array, i.e. as output
  *                    = 0 - array of photon number density flux per bin
  *                         (array of Stokes parameter I devided by energy)
  *                    = 1 - array of Stokes parameter Q devided by energy
@@ -94,16 +97,15 @@
  *                    = 5 - array of polarization angle psi=0.5*atan(U/Q)
  *                    = 6 - array of "Stokes" angle
  *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
- * par27 ... nthreads - how many threads should be used for computations
+ * par27 ... nthreads - number of threads to be used for computations
  *
  * NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
  *
  *  -> in this model it is assumed that local emission is completely
  *     linearly polarized in the direction perpendicular to the disc
- */
-/*******************************************************************************
-*******************************************************************************/
+ * 
+ ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>

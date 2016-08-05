@@ -1,44 +1,44 @@
 /* KYNBBphen - phenomenological black-body emission - non-axisymmetric version
- * C version of Fortran77 model subroutine for XSPEC
- *
+ * 
  * ref. Dovciak M., Karas V., Yaqoob T. (2004)
- * -------------------------------------------
- * REFERENCES:
- *
+ * -----------------------------------------------------------------------------
+ * OTHER REFERENCES:
+ * 
  * Dovciak M., Karas V. & Yaqoob, T. (2004). An extended scheme for fitting 
- * X-ray data with accretion disk spectra in the strong gravity regime.
+ * X-ray data with accretion disk spectra in the strong gravity regime. 
  * ApJS, 153, 205.
- *
+ * 
  * Dovciak M., Karas V., Martocchia A., Matt G. & Yaqoob T. (2004). XSPEC model
- * to explore spectral features from black hole sources.
- * In Proc. of the workshop on processes in the vicinity of black holes and
- * neutron stars. S.Hledik & Z.Stuchlik, Opava. In press. [astro-ph/0407330]
- *
+ * to explore spectral features from black hole sources. In Proc. of the 
+ * workshop on processes in the vicinity of black holes and neutron stars. 
+ * S.Hledik & Z.Stuchlik, Opava. In press. [astro-ph/0407330]
+ * 
  * Dovciak M. (2004). Radiation of accretion discs in strong gravity. Faculty of
  * Mathematics and Physics, Charles University, Prague. PhD thesis.
  * [astro-ph/0411605]
- * -------------------------------------------
- *
+ * -----------------------------------------------------------------------------
+ * 
  * This model computes phenomenological black-body emission from an accretion
  * disc around a black hole. It is phenomenological in the sense that the radial
  * dependence of the disc temperature is a simple powerlaw. The local flux is
  * defined as flux ~ E^2/(exp(E/kT)-1), where T=Tin*(r/rin)^(-BBindex).
  * All relativistic effects that change properties of the light on its way from
  * the disc to the observer are taken into account. This model calls subroutine
- * ide() for integrating local emission over the disc and uses the fits file
+ * ide() for integrating local emission over the disc and uses the FITS file
  * 'KBHtablesNN.fits' defining the transfer functions needed for integration.
- * For details on ide() and the fits file see the subroutine ide() in xside.c.
+ * For details on ide() and the FITS file see the subroutine ide() in xside.c.
  *
  * par1  ... a/M     - black hole angular momentum (-1 <= a/M <= 1)
  * par2  ... theta_o - observer inclination in degrees (0-pole, 90-disc)
  * par3  ... rin - inner edge of non-zero disc emissivity (in GM/c^2 or in 
  *                 r_mso)
- * par4  ... ms  - 0 - we integrate from inner edge = par3 
- *                 1 - if the inner edge of the disc is below marginally stable
- *                     orbit then we integrate emission above MSO only
- *                 2 - we integrate from inner edge given in units of MSO, i.e.
- *                     inner edge = par3 * r_mso (the same applies for outer 
- *                     edge)
+ * par4  ... ms  - switch that defines the meaning/units of rin, rout
+ *                 0: we integrate from inner edge = par3 
+ *                 1: if the inner edge of the disc is below marginally stable
+ *                    orbit then we integrate emission above MSO only
+ *                 2: we integrate from inner edge given in units of MSO, i.e.
+ *                    inner edge = par3 * r_mso (the same applies for outer 
+ *                    edge)
  * par5  ... rout  - outer edge of non-zero disc emissivity (in GM/c^2 or in 
  *                   r_mso)
  * par6  ... phi   - lower azimuth of non-zero disc emissivity (deg)
@@ -52,24 +52,24 @@
  *                     positive for approaching side of the disc)
  * par11 ... beta   - position of the cloud centre in GM/c^2 in beta coordinate
  *                    (beta being the impact parameter in theta direction, 
- *                     positive in up direction, i.e. away from the disc)
- * par12 ... rcloud - radius of the obscuring cloud
+ *                     positive in up direction, i.e. above the disc)
+ * par12 ... rcloud - radius of the obscuring cloud (in GM/c^2)
+ *                  - if negative, only the emission transmitted through
+ *                    the cloud is taken into account
  * par13 ... zshift - overall Doppler shift
- * par14 ... ntable - defines fits file with tables (0 <= ntable <= 99)
- *                    by default only the tables with ntable=80 are correct
- *                    for this model
+ * par14 ... ntable - table of relativistic transfer functions used in the model
+ *                    (defines fits file with tables), 0<= ntable <= 99
  * par15 ... nrad   - number of grid points in radius
  * par16 ... division - type of division in r integration
- *                      (0-equidistant, 1-exponential)
+ *                      0 -> equidistant radial grid (constant linear step)
+ *                      1 -> exponential radial grid (constant logarithmic step)
  * par17 ... nphi   - number of grid points in azimuth
  * par18 ... smooth - whether to smooth the resulting spectrum (0-no, 1-yes)
- * par19 ... nthreads - how many threads should be used for computations
+ * par19 ... nthreads - number of threads to be used for computations
  *
  * NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
- */
-/*******************************************************************************
-*******************************************************************************/
+ ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>

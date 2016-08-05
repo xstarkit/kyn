@@ -1,18 +1,19 @@
-/* KYNrline - relativistic line - non-axisymmetric version
- * C version of Fortran77 model subroutine for XSPEC
+/* KYNrline - relativistic line with radial broken power-law emissivity
+ *            - non-axisymmetric version
+ *            model subroutine for XSPEC
  * 
  * ref. Dovciak M., Karas V., Yaqoob T. (2004)
  * -----------------------------------------------------------------------------
- * REFERENCES:
+ * OTHER REFERENCES:
  * 
  * Dovciak M., Karas V. & Yaqoob, T. (2004). An extended scheme for fitting 
  * X-ray data with accretion disk spectra in the strong gravity regime. 
  * ApJS, 153, 205.
  * 
  * Dovciak M., Karas V., Martocchia A., Matt G. & Yaqoob T. (2004). XSPEC model
- * to explore spectral features from black hole sources. 
- * In Proc. of the workshop on processes in the vicinity of black holes and 
- * neutron stars. S.Hledik & Z.Stuchlik, Opava. In press. [astro-ph/0407330]
+ * to explore spectral features from black hole sources. In Proc. of the 
+ * workshop on processes in the vicinity of black holes and neutron stars. 
+ * S.Hledik & Z.Stuchlik, Opava. In press. [astro-ph/0407330]
  * 
  * Dovciak M. (2004). Radiation of accretion discs in strong gravity. Faculty of
  * Mathematics and Physics, Charles University, Prague. PhD thesis.
@@ -30,12 +31,13 @@
  * par2  ... theta_o - observer inclination in degrees (0-pole, 90-disc)
  * par3  ... rin - inner edge of non-zero disc emissivity (in GM/c^2 or in 
  *                 r_mso)
- * par4  ... ms  - 0 - we integrate from inner edge = par3 
- *                 1 - if the inner edge of the disc is below marginally stable
- *                     orbit then we integrate emission above MSO only
- *                 2 - we integrate from inner edge given in units of MSO, i.e.
- *                     inner edge = par3 * r_mso (the same applies for outer 
- *                     edge)
+ * par4  ... ms  - switch that defines the meaning/units of rin, rout
+ *                 0: we integrate from inner edge = par3 
+ *                 1: if the inner edge of the disc is below marginally stable
+ *                    orbit then we integrate emission above MSO only
+ *                 2: we integrate from inner edge given in units of MSO, i.e.
+ *                    inner edge = par3 * r_mso (the same applies for outer 
+ *                    edge)
  * par5  ... rout  - outer edge of non-zero disc emissivity (in GM/c^2 or in 
  *                   r_mso)
  * par6  ... phi   - lower azimuth of non-zero disc emissivity (deg)
@@ -45,7 +47,7 @@
  * par9  ... sigma - width of the line - Gaussian sigma (eV)
  * par10 ... q_out - power-law index for radial dependence of emissivity for
  *                   outer region, scales as r^(-q_out)
- * par11 ... q_in  - power-law index for radial dependence of emissivity for
+ * par11  ... q_in  - power-law index for radial dependence of emissivity for
  *                   inner region, scales as rb^(q_in-q_out)*r^(-q_in)
  * par12 ... rb    - boundary between the region with power-law index q_out and
  *                   q_in
@@ -55,10 +57,12 @@
  *                   rb is in GM/c^2
  * par13 ... jump  - ratio of local flux in inner region to local flux in outer
  *                   region at boundary radius defined by rb
- * par14 ... limb  - limb darkening/brightening law
+ * par14 ... limb  - limb darkening/brightening law (emission directionality)
  *                 - if =  0 the local emisivity is not multiplied by anything
  *                 - if = -1 the local emisivity is multiplied by 1+2.06*mu
+ *                   (limb darkening)
  *                 - if = -2 the local emisivity is multiplied by ln(1+1/mu)
+ *                   (limb brightening)
  *                 - if different from 0, -1 and -2 then the local emisivity
  *                   is multiplied by mu^(limb)
  * par15 ... alpha  - position of the cloud centre in GM/c^2 in alpha coordinate
@@ -66,18 +70,20 @@
  *                     positive for approaching side of the disc)
  * par16 ... beta   - position of the cloud centre in GM/c^2 in beta coordinate
  *                    (beta being the impact parameter in theta direction, 
- *                     positive in up direction, i.e. away from the disc)
- * par17 ... rcloud - radius of the obscuring cloud
+ *                     positive in up direction, i.e. above the disc)
+ * par17 ... rcloud - radius of the obscuring cloud (in GM/c^2)
+ *                  - if negative, only the emission transmitted through
+ *                    the cloud is taken into account
  * par18 ... zshift - overall Doppler shift
- * par19 ... ntable - defines fits file with tables (0 <= ntable <= 99)
- *                    by default only the tables with ntable=80 are correct
- *                    for this model
+ * par19 ... ntable - table of relativistic transfer functions used in the model
+ *                    (defines fits file with tables), 0<= ntable <= 99
  * par20 ... nrad   - number of grid points in radius
  * par21 ... division - type of division in r integration
- *                      (0-equidistant, 1-exponential)
+ *                      0 -> equidistant radial grid (constant linear step)
+ *                      1 -> exponential radial grid (constant logarithmic step)
  * par22 ... nphi   - number of grid points in azimuth
  * par23 ... smooth - whether to smooth the resulting spectrum (0-no, 1-yes)
- * par24 ... Stokes - what should be stored in photar() array
+ * par24 ... Stokes - what should be stored in photar() array, i.e. as output
  *                    = 0 - array of photon number density flux per bin
  *                         (array of Stokes parameter I devided by energy)
  *                    = 1 - array of Stokes parameter Q devided by energy
@@ -87,10 +93,10 @@
  *                    = 5 - array of polarization angle psi=0.5*atan(U/Q)
  *                    = 6 - array of "Stokes" angle
  *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
- * par25 ... nthreads - how many threads should be used for computations
+ * par25 ... nthreads - number of threads to be used for computations
  * par26 ... normaltype - how to normalize the spectra
  *                        = 0: normalization to the total photon flux
- *                        > 0: normalization to the photon flux at 'par12' keV
+ *                        > 0: normalization to the photon flux at 'par26' keV
  *                        = -1: the photon flux is not re-normalized,
  *                        = -2: normalization to the maximum of the photon flux
  * 
@@ -99,9 +105,8 @@
  * 
  *  -> in this model it is assumed that local emission is completely
  *     linearly polarized in the direction perpendicular to the disc
- */
-/*******************************************************************************
-*******************************************************************************/
+ * 
+ ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,8 +119,8 @@
 
 #define IFL    1
 #define NPARAM 26
-#define NE     200
-#define E_MIN  0.
+#define NE     400
+#define E_MIN  0.1
 #define E_MAX  10.
 
 int main() {
@@ -155,8 +160,8 @@ param[24] = 2.;   // nthreads
 param[25] = 0.;   // norm_type
 
 for (ie = 0; ie <= NE; ie++) {
-  ear[ie] = E_MIN + ie * (E_MAX-E_MIN) / NE;
-//  ear[ie] = E_MIN * pow(E_MAX/E_MIN, ((double) ie) / NE);
+//  ear[ie] = E_MIN + ie * (E_MAX-E_MIN) / NE;
+  ear[ie] = E_MIN * pow(E_MAX/E_MIN, ((double) ie) / NE);
 }
 
 KYNrline(ear, NE, param, IFL, photar, photer, initstr);

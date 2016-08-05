@@ -1,5 +1,111 @@
-/*******************************************************************************
-*******************************************************************************/
+/* KYNxillver - relativistic disc reflection in lamp-post geometry (ionised disc)
+ *              model subroutine for XSPEC
+ * 
+ * ref. Dovciak M., Karas V., Yaqoob T. (2004)
+ * -----------------------------------------------------------------------------
+ * OTHER REFERENCES:
+ * 
+ * Dovciak, M., Svoboda, J., Goosmann, R. W., et al.: 2014, in Proceedings
+ * of RAGtime 14-16: Workshops on black holes and neutron stars (Silesian 
+ * University in Opava). [arXiv:1412.8627]
+ * 
+ * Dovciak M., Karas V. & Yaqoob, T. (2004). An extended scheme for fitting 
+ * X-ray data with accretion disk spectra in the strong gravity regime. 
+ * ApJS, 153, 205.
+ * 
+ * Dovciak M., Karas V., Martocchia A., Matt G. & Yaqoob T. (2004). XSPEC model
+ * to explore spectral features from black hole sources. In Proc. of the 
+ * workshop on processes in the vicinity of black holes and neutron stars. 
+ * S.Hledik & Z.Stuchlik, Opava. In press. [astro-ph/0407330]
+ * 
+ * Dovciak M. (2004). Radiation of accretion discs in strong gravity. Faculty of
+ * Mathematics and Physics, Charles University, Prague. PhD thesis.
+ * [astro-ph/0411605]
+ * -----------------------------------------------------------------------------
+ * 
+ * This subroutine computes the emission from an acrretion disc that is
+ * illuminated from the primary power-law source located on the axis above the
+ * central black hole. All relativistic effects are taken into account (in all 
+ * three parts of the light path - from the primary source to the observer, to 
+ * disc and from the disc to the observer). This model calls subroutine ide() 
+ * for integrating local emission over the disc and uses the FITS file 
+ * 'KBHtablesNN.fits' defining the transfer functions needed for integration 
+ * over disc as well as the FITS file 'KBHlamp_q.fits' defining the transfer 
+ * functions between the source and the disc. For details on ide() and the FITS 
+ * file 'KBHtablesNN.fits' see the subroutine ide() in xside.c, for details on 
+ * the FITS file 'KBHlamp_q.fits' see the subroutine KYNrlpli() in xsKYNrlpli.c.
+ * The reflection is taken from Garcia et al. tables XILLVER.
+ *
+ * par1  ... a/M     - black hole angular momentum (-1 <= a/M <= 1)
+ * par2  ... theta_o - observer inclination in degrees (0-pole, 90-disc)
+ * par3  ... rin - inner edge of non-zero disc emissivity (in GM/c^2 or in 
+ *                 r_mso)
+ * par4  ... ms  - switch that defines the meaning/units of rin, rout
+ *                 0: we integrate from inner edge = par3 
+ *                 1: if the inner edge of the disc is below marginally stable
+ *                    orbit then we integrate emission above MSO only
+ *                 2: we integrate from inner edge given in units of MSO, i.e.
+ *                    inner edge = par3 * r_mso (the same applies for outer 
+ *                    edge)
+ * par5  ... rout  - outer edge of non-zero disc emissivity (in GM/c^2 or in 
+ *                   r_mso)
+ * par6  ... phi   - lower azimuth of non-zero disc emissivity (deg)
+ * par7  ... dphi  - (phi + dphi) is upper azimuth of non-zero disc emissivity
+ *                   0 <= dphi <= 360  (deg)
+ * par8  ... M/M8   - black hole mass in units of 10^8 solar masses
+ * par9  ... height - height on the axis (measured from the center) at which
+ *                    the primary source is located (GM/c^2)
+ *                    DO NOT USE THE MODEL WITH NEGATIVE HEIGHT!!! 
+ * par10 ... PhoIndex - power-law energy index of the primary flux
+ * par11 ... L/Ledd   - dE/dt, the intrinsic local (if negative) or the 
+ *                      observed (if positive) primary isotropic flux in the 
+ *                      X-ray energy range 2-10keV in units of Ledd
+ * par12 ... NpNr   - ratio of the primary to the reflected normalization
+ *                    1 - self-consistent model for isotropic primary source
+ *                    0 - only reflection, primary source is hidden
+ * par13 ... nH0    - density profile normalization in 10^15 cm^(-3)
+ * par14 ... q_n    - radial power-law density profile
+ * par15 ... abun   - Fe abundance (in solar abundance)
+ * par16 ... Ecut   - cut-off energy
+ * par17 ... alpha  - position of the cloud centre in GM/c^2 in alpha coordinate
+ *                    (alpha being the impact parameter in phi direction, 
+ *                     positive for approaching side of the disc)
+ * par18 ... beta   - position of the cloud centre in GM/c^2 in beta coordinate
+ *                    (beta being the impact parameter in theta direction, 
+ *                     positive in up direction, i.e. above the disc)
+ * par19 ... rcloud - radius of the obscuring cloud (in GM/c^2)
+ *                  - if negative, only the emission transmitted through
+ *                    the cloud is taken into account
+ * par20 ... zshift - overall Doppler shift
+ * par21 ... limb   - limb darkening/brightening law (emission directionality)
+ *                  - used only for angle averaged tables
+ *                  - if = 0 the local emisivity is not multiplied by anything
+ *                  - if = 1 the local emisivity is multiplied by 1+2.06*mu
+ *                    (limb darkening)
+ *                  - if = 2 the local emisivity is multiplied by ln(1+1/mu)
+ *                    (limb brightening)
+ * par22 ... tab - which reflion table to use 
+ *                 1 -> reflion (the old one, lower cut-off energy at 1eV,
+ *                      not good for PhoIndex > 2)
+ *                 2 -> reflionx (the new one, lower cut-off energy at 100eV)
+ * par23 ... ntable - table of relativistic transfer functions used in the model
+ *                    (defines fits file with tables), 0<= ntable <= 99
+ * par24 ... nrad   - number of grid points in radius
+ * par25 ... division - type of division in r integration
+ *                      0 -> equidistant radial grid (constant linear step)
+ *                      1 -> exponential radial grid (constant logarithmic step)
+ * par26 ... nphi   - number of grid points in azimuth
+ * par27 ... smooth - whether to smooth the resulting spectrum (0-no, 1-yes)
+ * par28 ... nthreads - number of threads to be used for computations
+ * par29 ... norm     - has to be set to unity!
+ *
+ * NOTES:
+ *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
+ *
+ *  -> the normalization is in the same physical units as the local flux
+ *     i.e. we do not renormalize the spectra
+ *
+ ******************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,7 +142,7 @@ param[ 6] = 360.;     // dphi
 param[ 7] = 1.;       // M/M8
 param[ 8] = 3.;       // height
 param[ 9] = 2.;       // PhoIndex
-param[10] = 0.001;    // Np
+param[10] = 0.001;    // L/Ledd
 param[11] = 1.;       // NpNr
 param[12] = 1.;       // nH0
 param[13] = 0.;       // q_n
@@ -229,7 +335,7 @@ else {
 }
 // PhoIndex - power-law energy index of the lamp emission
 gamma0 = param[9];
-// Np - dN/dt/dOmega primary isotropic flux in Eddington luminosity
+// L/Ledd - dE/dt primary isotropic flux in Eddington luminosity
 Np = param[10];
 // Np:Nr - ratio of the primary to the reflected normalization
 NpNr = param[11];
