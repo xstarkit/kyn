@@ -46,37 +46,37 @@ with the following assumptions and features:
 
   - *Relativistic fluorescent line models:*
 
-      * [**KYNrline**](#kynrline) - relativistic line with broken power-law 
+      * [KYNrline](#kynrline) - relativistic line with broken power-law 
                                     radial emissivity,
-      * [**KYNrlpli**](#kynrlpli) -  relativistic line in lamp-post geometry.
+      * [KYNrlpli](#kynrlpli) -  relativistic line in lamp-post geometry.
 
   - *Relativistic convolution models:*
 
-      * [**KYNconv**](#kynconv) - relativistic convolution model with broken 
+      * [KYNconv](#kynconv) - relativistic convolution model with broken 
                                   power-law radial emissivity,
-      * [**KYNclp**](#kynclp) - relativistic convolution model in lamp-post 
+      * [KYNclp](#kynclp) - relativistic convolution model in lamp-post 
                                 geometry.
 
   - *Relativistic reflection models:*
 
-      * [**KYNlpcr**](#kynlpcr) - relativistic reflection model in lamp-post 
+      * [KYNlpcr](#kynlpcr) - relativistic reflection model in lamp-post 
                                  geometry for neutral disc (local emissivity 
                                  computed by NOAR),
-      * [**KYNrefionx**](#kynrefionx) - relativistic reflection model in 
+      * [KYNrefionx](#kynrefionx) - relativistic reflection model in 
                                        lamp-post geometry for ionised disc 
                                        (local emissivity is given by REFLIONX),
-      * [**KYNxillver**](#kynxillver) - relativistic reflection model in 
+      * [KYNxillver](#kynxillver) - relativistic reflection model in 
                                        lamp-post geometry for ionised disc 
                                        (local emissivity is given by XILLVER),
-      * [**KYNhrefl**](#kynhrefl) - relativistic reflection model  with broken 
+      * [KYNhrefl](#kynhrefl) - relativistic reflection model  with broken 
                                    power-law emissivity for continuum based on 
                                    HREFL(POWERLAW).
 
   - *Thermal radiation models:*
 
-      * [**KYNphebb**](#kynphebb) - relativistic thermal radiation with radial 
+      * [KYNphebb](#kynphebb) - relativistic thermal radiation with radial 
                                    power-law temperature profile,
-      * [**KYNbb**](#kynbb) - relativistic thermal radiation with Novikov-Thorne 
+      * [KYNbb](#kynbb) - relativistic thermal radiation with Novikov-Thorne 
                               temperature profile (without self-irradiation and 
                               with colour correction factor).
 
