@@ -152,7 +152,7 @@ char   initstr[0] = "";
 int    ie;
 
 param[ 0] = 1.;           // a/M
-param[ 1] = 30.;          // thetaO
+param[ 1] = 30.;          // theta_o
 param[ 2] = 1.;           // rin
 param[ 3] = 1.;           // ms
 param[ 4] = 400.;         // rout
@@ -172,7 +172,7 @@ param[17] = 100.;         // ne_loc
 param[18] = 1.;           // smooth
 param[19] = 0.;           // Stokes
 param[20] = 2.;           // nthreads
-param[21] = 0.;           // norm_type
+param[21] = 0.;           // normtype
 
 for (ie = 0; ie <= NE; ie++) {
   //ear[ie] = E_MIN + ie * (E_MAX-E_MIN) / NE;

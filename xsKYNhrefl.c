@@ -53,9 +53,9 @@
  * par7  ... dphi  - (phi + dphi) is upper azimuth of non-zero disc emissivity
  *                   0 <= dphi <= 360  (deg)
  * par8  ... PhoIndex  - photon index of primary power-law illumination
- * par9   ... q_out - power-law index for radial dependence of emissivity for
- *                    outer region, scales as r^(-q_out)
- * par10  ... q_in  - power-law index for radial dependence of emissivity for
+ * par9  ... q_out - power-law index for radial dependence of emissivity for
+ *                   outer region, scales as r^(-q_out)
+ * par10 ... q_in  - power-law index for radial dependence of emissivity for
  *                   inner region, scales as rb^(q_in-q_out)*r^(-q_in)
  * par11 ... rb    - boundary between the region with power-law index q_out and
  *                   q_in
@@ -68,7 +68,7 @@
  * par13 ... Feabun  - iron abundance relative to Solar
  * par14 ... FeKedge - iron K-edge energy
  * par15 ... Escfrac - normalization of the original powerlaw emission
- * par16 ... covfac  - normalization of the reflected emission
+ * par16 ... covfac - normalization of the reflected emission
  * par17 ... alpha  - position of the cloud centre in GM/c^2 in alpha coordinate
  *                    (alpha being the impact parameter in phi direction, 
  *                     positive for approaching side of the disc)
@@ -132,7 +132,7 @@ char   initstr[0] = "";
 int    ie;
 
 param[ 0] = 0.9982;     // a/M
-param[ 1] = 30.;        // thetaO
+param[ 1] = 30.;        // theta_o
 param[ 2] = 1.;         // rin
 param[ 3] = 0.;         // ms
 param[ 4] = 10.;        // rout
@@ -143,9 +143,9 @@ param[ 8] = 3;          // q_out
 param[ 9] = 2.;         // q_in
 param[10] = 0.;         // rb
 param[11] = 0.;         // jump
-param[12] = 1.;         // AFE
-param[13] = 7.11;       // EKEDGE
-param[14] = 0.;         // escfrac
+param[12] = 1.;         // Feabun
+param[13] = 7.11;       // FeKedge
+param[14] = 0.;         // Escfrac
 param[15] = 1.;         // covfac
 param[16] = -3.;        // alpha
 param[17] = 0.;         // beta

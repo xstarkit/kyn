@@ -47,13 +47,13 @@
  * par9  ... sigma - width of the line - Gaussian sigma (eV)
  * par10 ... q_out - power-law index for radial dependence of emissivity for
  *                   outer region, scales as r^(-q_out)
- * par11  ... q_in  - power-law index for radial dependence of emissivity for
+ * par11 ... q_in  - power-law index for radial dependence of emissivity for
  *                   inner region, scales as rb^(q_in-q_out)*r^(-q_in)
  * par12 ... rb    - boundary between the region with power-law index q_out and
  *                   q_in
  *                 - if > 0 then the boundary is in units of MSO, i.e.
  *                   boundary = rb * r_mso
- *                 - if <= 0 then the boundary is equal to -(rb-r_horizon) where 
+ *                 - if <= 0 then the boundary is equal to -rb+r_horizon where 
  *                   rb is in GM/c^2
  * par13 ... jump  - ratio of local flux in inner region to local flux in outer
  *                   region at boundary radius defined by rb
@@ -94,11 +94,11 @@
  *                    = 6 - array of "Stokes" angle
  *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
  * par25 ... nthreads - number of threads to be used for computations
- * par26 ... normaltype - how to normalize the spectra
- *                        = 0: normalization to the total photon flux
- *                        > 0: normalization to the photon flux at 'par26' keV
- *                        = -1: the photon flux is not re-normalized,
- *                        = -2: normalization to the maximum of the photon flux
+ * par26 ... normtype - how to normalize the spectra
+ *                      = 0: normalization to the total photon flux
+ *                      > 0: normalization to the photon flux at 'par26' keV
+ *                      = -1: the photon flux is not re-normalized,
+ *                      = -2: normalization to the maximum of the photon flux
  * 
  *  NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
@@ -133,20 +133,20 @@ char   initstr[0] = "";
 int    ie;
 
 param[ 0] = 1.;   // a/M
-param[ 1] = 30.;  // thetaO
+param[ 1] = 30.;  // theta_o
 param[ 2] = 1.;   // rin
 param[ 3] = 1.;   // ms
 param[ 4] = 400.; // rout
 param[ 5] = 0.;   // phi
 param[ 6] = 360.; // dphi
-param[ 7] = 6.4;  // erest
+param[ 7] = 6.4;  // Erest
 param[ 8] = 2.;   // sigma
 param[ 9] = 3.;   // q_out
 param[10] = 4.;   // q_in
 param[11] = 0.;   // rb
 param[12] = 1.;   // jump
 param[13] = 0.;   // limb
-param[14] = 100.;  // alpha
+param[14] = 100.; // alpha
 param[15] = 0.;   // beta
 param[16] = 0.;   // rcloud
 param[17] = 0.;   // zshift
@@ -157,7 +157,7 @@ param[21] = 720.; // nphi
 param[22] = 1.;   // smooth
 param[23] = 0.;   // Stokes
 param[24] = 2.;   // nthreads
-param[25] = 0.;   // norm_type
+param[25] = 0.;   // normtype
 
 for (ie = 0; ie <= NE; ie++) {
 //  ear[ie] = E_MIN + ie * (E_MAX-E_MIN) / NE;

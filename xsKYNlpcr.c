@@ -62,9 +62,9 @@
  * par11 ... L/Ledd   - dE/dt, the intrinsic local (if negative) or the 
  *                      observed (if positive) primary isotropic flux in the 
  *                      X-ray energy range 2-10keV in units of Ledd
- * par12 ... NpNr   - ratio of the primary to the reflected normalization
- *                    1 - self-consistent model for isotropic primary source
- *                    0 - only reflection, primary source is hidden
+ * par12 ... Np:Nr - ratio of the primary to the reflected normalization
+ *                   1 - self-consistent model for isotropic primary source
+ *                   0 - only reflection, primary source is hidden
  * par13 ... line  - whether to include lines and/or reflection continuum in
  *                   the spectra
  *                   0 - only continuum
@@ -75,7 +75,7 @@
  *                  -2 - Kalpha and Kbeta lines without the reflection continuum
  *                  -3 - all lines computed by NOAR for neutral disc without
  *                       the reflection continuum
- * par14 ... Ec     - energy cut-off
+ * par14 ... E_cut  - energy cut-off
  * par15 ... alpha  - position of the cloud centre in GM/c^2 in alpha coordinate
  *                    (alpha being the impact parameter in phi direction, 
  *                     positive for approaching side of the disc)
@@ -109,9 +109,6 @@
  *
  * NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
- *
- *  -> the normalization is in the same physical units as the local flux
- *     i.e. we do not renormalize the spectra
  *
  *  -> this model includes a physical model of polarization based on Rayleigh 
  *     scattering in single scattering approximation
@@ -180,7 +177,7 @@ char   initstr[0] = "";
 int    ie;
 
 param[ 0] = 1.;         // a/M
-param[ 1] = 30.;        // thetaO
+param[ 1] = 30.;        // theta_o
 param[ 2] = 1.;         // rin
 param[ 3] = 1.;         // ms
 param[ 4] = 400.;       // rout
@@ -192,7 +189,7 @@ param[ 9] = 2.;         // PhoIndex
 param[10] = 0.001;      // L/Ledd
 param[11] = 1.;         // Np:Nr
 param[12] = 3.;         // line
-param[13] = 300.;       // Ec
+param[13] = 300.;       // E_cut
 param[14] = -6.;        // alpha
 param[15] = 0.;         // beta
 param[16] = 0.;         // rcloud

@@ -60,13 +60,13 @@
  * par11 ... L/Ledd   - dE/dt, the intrinsic local (if negative) or the 
  *                      observed (if positive) primary isotropic flux in the 
  *                      X-ray energy range 2-10keV in units of Ledd
- * par12 ... NpNr   - ratio of the primary to the reflected normalization
+ * par12 ... Np:Nr  - ratio of the primary to the reflected normalization
  *                    1 - self-consistent model for isotropic primary source
  *                    0 - only reflection, primary source is hidden
- * par13 ... nH0    - density profile normalization in 10^15 cm^(-3)
- * par14 ... q_n    - radial power-law density profile
+ * par13 ... density  - density profile normalization in 10^15 cm^(-3)
+ * par14 ... den_prof - radial power-law density profile
  * par15 ... abun   - Fe abundance (in solar abundance)
- * par16 ... Ecut   - cut-off energy
+ * par16 ... E_cut  - cut-off energy
  * par17 ... alpha  - position of the cloud centre in GM/c^2 in alpha coordinate
  *                    (alpha being the impact parameter in phi direction, 
  *                     positive for approaching side of the disc)
@@ -84,10 +84,16 @@
  *                    (limb darkening)
  *                  - if = 2 the local emisivity is multiplied by ln(1+1/mu)
  *                    (limb brightening)
- * par22 ... tab - which reflion table to use 
- *                 1 -> reflion (the old one, lower cut-off energy at 1eV,
- *                      not good for PhoIndex > 2)
- *                 2 -> reflionx (the new one, lower cut-off energy at 100eV)
+ * par22 ... tab - which XILLVER table to use 
+ *                 1 -> xillver-a-Ec2.fits, angle dependent with free cut-off
+ *                      energy 
+ *                 2 -> xillver-a-Ec.fits, angle dependent with free cut-off 
+ *                      energy 
+ *                 3 -> xillver-Ec.fits, angle averaged with free cut-off energy 
+ *                 4 -> xillver-a.fits, angle dependent with cut-off energy at
+ *                      300 keV
+ *                 5 -> xillver.fits, angle averaged with cut-off energy at 
+ *                      300 keV
  * par23 ... ntable - table of relativistic transfer functions used in the model
  *                    (defines fits file with tables), 0<= ntable <= 99
  * par24 ... nrad   - number of grid points in radius
@@ -101,9 +107,6 @@
  *
  * NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
- *
- *  -> the normalization is in the same physical units as the local flux
- *     i.e. we do not renormalize the spectra
  *
  ******************************************************************************/
 
@@ -133,7 +136,7 @@ char   initstr[0] = "";
 int    ie;
 
 param[ 0] = 1.;       // a/M
-param[ 1] = 30.;      // thetaO
+param[ 1] = 30.;      // theta_o
 param[ 2] = 1.;       // rin
 param[ 3] = 1.;       // ms
 param[ 4] = 400.;     // rout
@@ -143,9 +146,9 @@ param[ 7] = 1.;       // M/M8
 param[ 8] = 3.;       // height
 param[ 9] = 2.;       // PhoIndex
 param[10] = 0.001;    // L/Ledd
-param[11] = 1.;       // NpNr
-param[12] = 1.;       // nH0
-param[13] = 0.;       // q_n
+param[11] = 1.;       // Np:Nr
+param[12] = 1.;       // density
+param[13] = 0.;       // den_prof
 param[14] = 1.;       // abun
 param[15] = 300.;     // E_cut
 param[16] = -6.;      // alpha

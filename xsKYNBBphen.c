@@ -1,4 +1,4 @@
-/* KYNBBphen - phenomenological black-body emission - non-axisymmetric version
+/* KYNphebb - phenomenological black-body emission - non-axisymmetric version
  * 
  * ref. Dovciak M., Karas V., Yaqoob T. (2004)
  * -----------------------------------------------------------------------------
@@ -96,7 +96,7 @@ char   initstr[0] = "";
 int    ie;
 
 param[ 0] = 1.;         // a/M
-param[ 1] = 30.;        // thetaO
+param[ 1] = 30.;        // theta_o
 param[ 2] = 1.;         // rin
 param[ 3] = 1.;         // ms
 param[ 4] = 400.;       // rout

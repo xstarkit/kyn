@@ -85,12 +85,14 @@
  *                    = 6 - array of "Stokes" angle
  *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
  * par20 ... nthreads - number of threads to be used for computations
+ * par21 ... normtype - how to normalize the spectra
+ *                      = 0: normalization to the total photon flux
+ *                      > 0: normalization to the photon flux at 'par21' keV
+ *                      = -1: the photon flux is not re-normalized,
+ *                      = -2: normalization to the maximum of the photon flux
  *
  * NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
- *
- *  -> the normalization is in the same physical units as the local flux
- *     i.e. we do not renormalize the spectra
  *
  *  -> in this model it is assumed that local emission is completely
  *     linearly polarized in the direction perpendicular to the disc
@@ -213,7 +215,7 @@ char   initstr[0] = "";
 int    ie;
 
 param[ 0] = 1.;       // a/M
-param[ 1] = 30.;      // thetaO
+param[ 1] = 30.;      // theta_o
 param[ 2] = 1.;       // rin
 param[ 3] = 1.;       // ms
 param[ 4] = 1000.;    // rout
@@ -221,8 +223,8 @@ param[ 5] = 0.;       // phi0
 param[ 6] = 360.;     // dphi
 param[ 7] = 3.;       // height
 param[ 8] = 2.;       // PhoIndex
-param[ 9] = -3.;      // alpha_c
-param[10] = 0.;       // beta_c
+param[ 9] = -3.;      // alpha
+param[10] = 0.;       // beta
 param[11] = 0.;       // rcloud
 param[12] = 0.;       // zshift
 param[13] = 80.;      // ntable
@@ -232,7 +234,7 @@ param[16] = 720.;     // nphi
 param[17] = 1.;       // smooth
 param[18] = 0.;       // Stokes
 param[19] = 2.;       // nthreads
-param[20] = 0.;       // norm_type
+param[20] = 0.;       // normtype
 
 for (ie = 0; ie <= NE; ie++) {
   ear[ie] = E_MIN + ie * (E_MAX-E_MIN) / NE;

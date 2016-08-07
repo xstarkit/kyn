@@ -80,6 +80,10 @@
  *
  * NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
+ * 
+ *  -> in this model it is assumed that local emission is completely
+ *     linearly polarized in the direction perpendicular to the disc
+ * 
  ******************************************************************************/
 
 #include <stdio.h>
@@ -107,7 +111,7 @@ char   initstr[0] = "";
 int    ie;
 
 param[ 0] = 0.9982;     // a/M
-param[ 1] = 30.;        // thetaO
+param[ 1] = 30.;        // theta_o
 param[ 2] = 1.;         // rin
 param[ 3] = 1.;         // ms
 param[ 4] = 400.;       // rout
