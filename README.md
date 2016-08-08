@@ -285,10 +285,11 @@ Definition of the parameters:
       scales as r^(-q_out)
   * **par11  ... q_in**
     - power-law index for radial dependence of emissivity for inner region, 
-      scales as rb^(q_in-q_out)*r^(-q_in)
+      scales as rb^(q_in-q_out) &times; r^(-q_in)
   * **par12 ... rb**
     - boundary between the region with power-law index q_out and q_in
-    - if > 0 then the boundary is in units of MSO, i.e. boundary = rb * r~mso~
+    - if > 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
+      r~mso~
     - if <= 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c^2
   * **par13 ... jump**
     - ratio of local flux in inner region to local flux in outer region at 
@@ -338,7 +339,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2+U^2+V^2))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2))
   * **par25 ... nthreads**
     - number of threads used for computations
   * **par26 ... normtype** 
@@ -447,7 +448,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2+U^2+V^2))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2))
   * **par20 ... nthreads**
     - number of threads used for computations
   * **par21 ... normtype** 
@@ -513,10 +514,11 @@ Definition of the parameters:
       scales as r^(-q_out)
   * **par9  ... q_in**
     - power-law index for radial dependence of emissivity for inner region, 
-      scales as rb^(q_in-q_out)*r^(-q_in)
+      scales as rb^(q_in-q_out) &times; r^(-q_in)
   * **par10 ... rb**
     - boundary between the region with power-law index q_out and q_in
-    - if > 0 then the boundary is in units of MSO, i.e. boundary = rb * r~mso~
+    - if > 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
+      r~mso~
     - if <= 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c^2
   * **par11 ... jump**
     - ratio of local flux in inner region to local flux in outer region at 
@@ -569,7 +571,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2+U^2+V^2))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2))
   * **par24 ... nthreads**
     - number of threads used for computations
   * **par25 ... normtype** 
@@ -691,13 +693,13 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2+U^2+V^2))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2))
   * **par21 ... nthreads**
     - number of threads used for computations
   * **par22 ... normtype** 
     - how to normalize the spectra
     - 0: normalization to the total photon flux
-    - > 0: normalization to the photon flux at par21 keV
+    - > 0: normalization to the photon flux at par22 keV
     - -1: the photon flux is not re-normalized,
     - -2: normalization to the maximum of the photon flux
 
@@ -777,7 +779,7 @@ Definition of the parameters:
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
   * **par11 ... L/L~Edd~**
-    - dE/dt;, the intrinsic local (if negative) or the observed (if positive) 
+    - dE/dt, the intrinsic local (if negative) or the observed (if positive) 
       primary isotropic flux in the X-ray energy range 2-10keV in units of 
       L~Edd~
   * **par12 ... Np:Nr**
@@ -847,7 +849,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2+U^2+V^2))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2))
   * **par25 ... nthreads**
     - number of threads used for computations
   * **par26 ... norm**
@@ -922,7 +924,7 @@ Definition of the parameters:
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
   * **par11 ... L/L~Edd~**
-    - dE/dt;, the intrinsic local (if negative) or the observed (if positive) 
+    - dE/dt, the intrinsic local (if negative) or the observed (if positive) 
       primary isotropic flux in the X-ray energy range 2-10keV in units of 
       L~Edd~
   * **par12 ... Np:Nr**
@@ -1066,7 +1068,7 @@ Definition of the parameters:
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
   * **par11 ... L/L~Edd~**
-    - dE/dt;, the intrinsic local (if negative) or the observed (if positive) 
+    - dE/dt, the intrinsic local (if negative) or the observed (if positive) 
       primary isotropic flux in the X-ray energy range 2-10keV in units of 
       L~Edd~
   * **par12 ... Np:Nr**
@@ -1211,10 +1213,11 @@ Definition of the parameters:
       scales as r^(-q_out)
   * **par10 ... q_in**
     - power-law index for radial dependence of emissivity for inner region, 
-      scales as rb^(q_in-q_out)*r^(-q_in)
+      scales as rb^(q_in-q_out) &times; r^(-q_in)
   * **par11 ... rb**
     - boundary between the region with power-law index q_out and q_in
-    - if > 0 then the boundary is in units of MSO, i.e. boundary = rb * r~mso~
+    - if > 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
+      r~mso~
     - if <= 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c^2
   * **par12 ... jump**
     - ratio of local flux in inner region to local flux in outer region at 
@@ -1266,7 +1269,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2+U^2+V^2))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2))
   * **par27 ... nthreads**
     - number of threads used for computations
   * **par28 ... norm**
@@ -1448,7 +1451,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2+U^2+V^2))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2))
   * **par21 ... nthreads**
     - number of threads used for computations
   * **par22 ... norm**
