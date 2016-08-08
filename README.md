@@ -339,7 +339,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2 ))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par25 ... nthreads**
     - number of threads used for computations
   * **par26 ... normtype** 
@@ -448,7 +448,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2 ))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par20 ... nthreads**
     - number of threads used for computations
   * **par21 ... normtype** 
@@ -571,7 +571,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2 ))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par24 ... nthreads**
     - number of threads used for computations
   * **par25 ... normtype** 
@@ -693,7 +693,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2 ))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par21 ... nthreads**
     - number of threads used for computations
   * **par22 ... normtype** 
@@ -849,7 +849,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2 ))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par25 ... nthreads**
     - number of threads used for computations
   * **par26 ... norm**
@@ -1269,7 +1269,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2 ))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par27 ... nthreads**
     - number of threads used for computations
   * **par28 ... norm**
@@ -1451,7 +1451,7 @@ Definition of the parameters:
     - 3: Stokes parameter V devided by energy
     - 4: degree of polarisation
     - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^2 + U^2 + V^2 ))
+    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par21 ... nthreads**
     - number of threads used for computations
   * **par22 ... norm**
