@@ -5,7 +5,7 @@ SRC_KYNCLP=xsKYNclp.c
 SRC_KYNBBPHEN=xsKYNBBphen.c
 SRC_KYNBB=xsKYNBB.c
 SRC_KYNLPCR=xscutoffpl.cxx xsKYNlpcr.c
-SRC_KYNREFLIONX=xscutoffpl.cxx xsKYNreflionx.c
+SRC_KYNREFIONX=xscutoffpl.cxx xsKYNrefionx.c
 SRC_KYNXILLVER=xscutoffpl.cxx xsKYNxillver.c
 SRC_KYNHREFL=xsKYNhrefl.c
 
@@ -42,8 +42,8 @@ kynbb: $(SRC) $(SRC1) $(SRC_KYNBB)
 kynlpcr: $(SRC) $(SRC_KYNLPCR)
 		$(CC) $(CFLAGS) $(INCLUDE) $(INCLUDE1) -o $@ $(SRC) $(SRC_KYNLPCR) $(LIBRARY_PATH) $(LIBRARY1) $(LIBRARY)
 
-kynreflionx: $(SRC) $(SRC_KYNREFLIONX)
-		$(CC) $(CFLAGS) $(INCLUDE) $(INCLUDE1) -o $@ $(SRC) $(SRC_KYNREFLIONX) $(LIBRARY_PATH) $(LIBRARY1) $(LIBRARY)
+kynreflionx: $(SRC) $(SRC_KYNREFIONX)
+		$(CC) $(CFLAGS) $(INCLUDE) $(INCLUDE1) -o $@ $(SRC) $(SRC_KYNREFIONX) $(LIBRARY_PATH) $(LIBRARY1) $(LIBRARY)
 
 kynxillver: $(SRC) $(SRC_KYNXILLVER)
 		$(CC) $(CFLAGS) $(INCLUDE) $(INCLUDE1) -o $@ $(SRC) $(SRC_KYNXILLVER) $(LIBRARY_PATH) $(LIBRARY1) $(LIBRARY)

@@ -122,7 +122,6 @@ Required files
      - [reflionx.mod](https://owncloud.asu.cas.cz/index.php/s/Q6biiTPM1QBMtiT)
        (or [here](http://www.astro.cas.cz/dovciak/pub/KY-external/reflionx.mod)),
 
-
   * [XILLVER](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/) tables
     (Garcia & Kallman 2010, ApJ, 718, 695 and Garcia et al. 2013, ApJ, 768, 2): 
 
