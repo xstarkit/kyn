@@ -117,8 +117,7 @@ Required files
      their format/structure has changed:
 
      - [reflion.mod](https://owncloud.asu.cas.cz/index.php/s/6CWcb0o5Ssjehju) 
-       (or [here](http://www.astro.cas.cz/dovciak/pub/KY-external/reflion.mod))
-       (old),
+       (or [here](http://www.astro.cas.cz/dovciak/pub/KY-external/reflion.mod)) (old),
      - [reflionx.mod](https://owncloud.asu.cas.cz/index.php/s/Q6biiTPM1QBMtiT)
        (or [here](http://www.astro.cas.cz/dovciak/pub/KY-external/reflionx.mod)),
 
