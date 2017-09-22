@@ -131,21 +131,9 @@ Required files
      - [xillver-Ec.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-Ec.fits),
      - [xillver-a-Ec.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-a-Ec.fits),
      - [xillver-a-Ec2.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-a-Ec2.fits),
-
-     or in case the links are not available or if the tables there are updated 
-     and their format/structure has changed, the versions from 6/2/2015 are 
-     available:
-
-     - [xillver.fits](https://owncloud.asu.cas.cz/index.php/s/fm0TSYEppodVisj)
-       (or [here](http://astro.cas.cz/dovciak/pub/KY-external/xillver.fits)),
-     - [xillver-a.fits](https://owncloud.asu.cas.cz/index.php/s/QXyzV0yV1MXCDmo)
-       (or [here](http://astro.cas.cz/dovciak/pub/KY-external/xillver-a.fits)),
-     - [xillver-Ec.fits](https://owncloud.asu.cas.cz/index.php/s/CAaITVwDYnFnwNV)
-       (or [here](http://astro.cas.cz/dovciak/pub/KY-external/xillver-Ec.fits)),
-     - [xillver-a-Ec.fits](https://owncloud.asu.cas.cz/index.php/s/WJfb82YGb588616)
-       (or [here](http://astro.cas.cz/dovciak/pub/KY-external/xillver-a-Ec.fits)),
-     - [xillver-a-Ec2.fits](https://owncloud.asu.cas.cz/index.php/s/qlgmzAm0gXLu1Zn)
-       (or [here](http://astro.cas.cz/dovciak/pub/KY-external/xillver-a-Ec2.fits)).
+     - [xillver-a-Ec3.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-a-Ec3.fits),
+     - [xillver-a-Ec4.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-a-Ec4.fits),
+     - [xillver-a-Ec5.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-a-Ec5.fits).
 
 
 Usage in XSPEC
@@ -779,7 +767,7 @@ Definition of the parameters:
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
   * **par11 ... L/L~Edd~**
-    - dE/dt, the intrinsic local (if negative) or the observed (if positive) 
+    - dE/dt, the observed (if positive) or the intrinsic local (if negative) 
       primary isotropic flux in the X-ray energy range 2-10keV in units of 
       L~Edd~
   * **par12 ... Np:Nr**
@@ -927,7 +915,7 @@ Definition of the parameters:
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
   * **par11 ... L/L~Edd~**
-    - dE/dt, the intrinsic local (if negative) or the observed (if positive) 
+    - dE/dt, the observed (if positive) or the intrinsic local (if negative) 
       primary isotropic flux in the X-ray energy range 2-10keV in units of 
       L~Edd~
   * **par12 ... Np:Nr**
@@ -1078,7 +1066,7 @@ Definition of the parameters:
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
   * **par11 ... L/L~Edd~**
-    - dE/dt, the intrinsic local (if negative) or the observed (if positive) 
+    - dE/dt, the observed (if positive) or the intrinsic local (if negative) 
       primary isotropic flux in the X-ray energy range 2-10keV in units of 
       L~Edd~
   * **par12 ... Np:Nr**

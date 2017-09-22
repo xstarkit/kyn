@@ -59,8 +59,8 @@
  *                    the primary source is located (GM/c^2)
  *                    DO NOT USE THE MODEL WITH NEGATIVE HEIGHT!!! 
  * par10 ... PhoIndex - power-law energy index of the primary flux
- * par11 ... L/Ledd   - dE/dt, the intrinsic local (if negative) or the 
- *                      observed (if positive) primary isotropic flux in the 
+ * par11 ... L/Ledd   - dE/dt, the observed (if positive) or intrinsic local 
+ *                      (if negative) primary isotropic flux in the 
  *                      X-ray energy range 2-10keV in units of Ledd
  * par12 ... Np:Nr  - ratio of the primary to the reflected normalization
  *                    1 - self-consistent model for isotropic primary source
