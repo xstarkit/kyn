@@ -62,9 +62,13 @@
  * par11 ... L/Ledd   - dE/dt, the intrinsic local (if negative) or the 
  *                      observed (if positive) primary isotropic flux in the 
  *                      X-ray energy range 2-10keV in units of Ledd
- * par12 ... Np:Nr - ratio of the primary to the reflected normalization
- *                   1 - self-consistent model for isotropic primary source
- *                   0 - only reflection, primary source is hidden
+ * par12 ... Np:Nr  - ratio of the primary to the reflected normalization
+ *                    1 - self-consistent model for isotropic primary source
+ *                    0 - only reflection, primary source is hidden
+ *                  - if positive then L/Ledd (par11) means the luminosity 
+ *                    towards the observer
+ *                  - if negative then L/Ledd (par11) means the luminosity 
+ *                    towards the disc
  * par13 ... line  - whether to include lines and/or reflection continuum in
  *                   the spectra
  *                   0 - only continuum
@@ -372,6 +376,7 @@ gam = param[9];
 Np = param[10];
 // NpNr - ratio of the primary normalization to the reflected normalization
 NpNr = param[11];
+if( NpNr > 0. ) Np /= NpNr;
 // line - whether to include line in the spectra
 line = (int) param[12];
 // Ec - energy cut-off
@@ -1182,13 +1187,13 @@ for(ie = 0; ie < ne; ie++){
 }
 // Let's add primary flux to the solution
 refl_ratio=-1.;
-if (NpNr > 0.) {  
+if (NpNr != 0.) {  
 // let's compute the cut-off powerlaw with the XSPEC routine cutoffPowerLaw
   for(ie = 0; ie <= ne; ie++) ear1[ie] = (double) ear[ie];
   param1[0] = (double) gam;
   param1[1] = (double) g_L * zzshift * Ec;
   cutoffpl(ear1, ne, param1, photar1);
-  Anorm *= NpNr * transf_o * pow(g_L * zzshift, gam);
+  Anorm *= fabs(NpNr) * transf_o * pow(g_L * zzshift, gam);
   flux_refl = flux_prim = 0.;
   for(ie = 0; ie < ne; ie++) 
     if (ear[ie] > g_L * zzshift * E0){
@@ -1253,7 +1258,7 @@ else {
 #ifdef OUTSIDE_XSPEC
 // final spectrum output -- write ear() and photar() into file:
 fw = fopen("kynlpcr_photar.dat", "w");
-if( NpNr > 0. )
+if( NpNr != 0. )
   for (ie = 0; ie < ne; ie++) fprintf(fw, "%14.6f\t%E\t%E\n", 
     0.5*(ear[ie]+ear[ie+1]), 
     (photar[ie]-Anorm * photar1[ie]) / (ear[ie+1] - ear[ie]),

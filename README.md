@@ -786,6 +786,9 @@ Definition of the parameters:
     - ratio of the primary to the reflected normalization
     - 1: self-consistent model for isotropic primary source
     - 0: only reflection, primary source is hidden
+    - if positive then L/L~Edd~ (par11) means the luminosity towards the 
+      observer
+    - if negative then L/L~Edd~ (par11) means the luminosity towards the disc
   * **par13 ... line**
     - whether to include lines and/or reflection continuum in the spectra
     -  0: only continuum
@@ -931,10 +934,17 @@ Definition of the parameters:
     - ratio of the primary to the reflected normalization
     - 1: self-consistent model for isotropic primary source
     - 0: only reflection, primary source is hidden
-  * **par13 ... density**
-    - density profile normalization in 10^15 cm^(-3)
-  * **par14 ... den_prof**
-    - radial power-law density profile
+    - if positive then L/L~Edd~ (par11) means the luminosity towards the 
+      observer
+    - if negative then L/L~Edd~ (par11) means the luminosity towards the disc
+  * **par13 ... density/ionisation**
+    - density profile normalization in 10^15 cm^(-3) if positive
+    - ionisation profile normalisation if it is negative
+    - this parameter cannot be zero
+  * **par14 ... den_prof/ion_prof**
+    - radial power-law density profile if par13 is positive
+    - radial ionisation profile if par13 is negative
+    - the radial profiles in both cases are given by abs(par13) &times; r^(par14)
   * **par15 ... abun**
     - Fe abundance (in solar abundance)
   * **par16 ... alpha**
@@ -1075,14 +1085,22 @@ Definition of the parameters:
     - ratio of the primary to the reflected normalization
     - 1: self-consistent model for isotropic primary source
     - 0: only reflection, primary source is hidden
-  * **par13 ... density**
-    - density profile normalization in 10^15 cm^(-3)
-  * **par14 ... den_prof**
-    - radial power-law density profile
+    - if positive then L/L~Edd~ (par11) means the luminosity towards the 
+      observer
+    - if negative then L/L~Edd~ (par11) means the luminosity towards the disc
+  * **par13 ... density/ionisation**
+    - density profile normalization in 10^15 cm^(-3) if positive
+    - ionisation profile normalisation if it is negative
+    - this parameter cannot be zero
+  * **par14 ... den_prof/ion_prof**
+    - radial power-law density profile if par13 is positive
+    - radial ionisation profile if par13 is negative
+    - the radial profiles in both cases are given by abs(par13) &times; r^(par14)
   * **par15 ... abun**
     - Fe abundance (in solar abundance)
   * **par16 ... E_cut**
-    - cut-off energy
+    - the observed (if positive) or intrinsic local at the source (if negative) 
+      cut-off energy of the primary X-ray radiation
   * **par17 ... alpha**
     - position of the cloud centre in GM/c^2 in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
@@ -1117,15 +1135,21 @@ Definition of the parameters:
     - 2: for Haardt's limb brightening (flux ~ ln (1+1/&mu;))
   * **par22 ... tab**
     - which XILLVER table to use
-    - 1: xillver-a-Ec2.fits, angle dependent with free cut-off
-         energy 
-    - 2: xillver-a-Ec.fits, angle dependent with free cut-off 
-         energy 
+    - 1: xillver.fits, angle averaged with cut-off energy at 
+         300 keV
+    - 2: xillver-a.fits, angle dependent with cut-off energy at
+         300 keV
     - 3: xillver-Ec.fits, angle averaged with free cut-off energy 
-    - 4: xillver-a.fits, angle dependent with cut-off energy at
-         300 keV
-    - 5: xillver.fits, angle averaged with cut-off energy at 
-         300 keV
+    - 4: xillver-a-Ec.fits, angle dependent with free cut-off 
+         energy 
+    - 5: xillver-a-Ec2.fits, angle dependent with free cut-off
+         energy 
+    - 6: xillver-a-Ec3.fits, angle dependent with free cut-off
+         energy 
+    - 7: xillver-a-Ec4.fits, angle dependent with free cut-off
+         energy 
+    - 8: xillver-a-Ec5.fits, angle dependent with free cut-off
+         energy 
   * **par23 ... ntable**
     - table of relativistic transfer functions used in the model
       (defines FITS file with tables), 0 &le; ntable &le; 99, currently the 

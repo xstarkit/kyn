@@ -392,7 +392,7 @@ else {
     if ((pa2max + pa2min) > 180.) pa2[ie] -= 180.;
     if ((pa2max + pa2min) < -180.) pa2[ie] += 180.;
     fprintf(fw,
-      "%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\n", 
+      "%E\t%E\t%E\t%E\t%E\t%E\t%E\t%E\n", 
       0.5 * (ear[ie] + ear[ie+1]), far[ie] / (ear[ie+1] - ear[ie]), 
       qar[ie] / (ear[ie+1] - ear[ie]), uar[ie] / (ear[ie+1] - ear[ie]), 
       var[ie] / (ear[ie+1] - ear[ie]), pd[ie], pa[ie], pa2[ie]);

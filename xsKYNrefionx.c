@@ -63,8 +63,15 @@
  * par12 ... Np:Nr  - ratio of the primary to the reflected normalization
  *                    1 - self-consistent model for isotropic primary source
  *                    0 - only reflection, primary source is hidden
- * par13 ... density  - density profile normalization in 10^15 cm^(-3)
- * par14 ... den_prof - radial power-law density profile
+ *                  - if positive then L/Ledd (par11) means the luminosity 
+ *                    towards the observer
+ *                  - if negative then L/Ledd (par11) means the luminosity 
+ *                    towards the disc
+ * par13 ... density  - density profile normalization in 10^15 cm^(-3) 
+ *                      if positive
+ *                    - ionisation profile normalisation if it is negative
+ * par14 ... den_prof - radial power-law density profile if par13 is positive
+ *                    - radial ionisation profile if par13 is negative
  * par15 ... abun   - Fe abundance (in solar abundance)
  * par16 ... alpha  - position of the cloud centre in GM/c^2 in alpha coordinate
  *                    (alpha being the impact parameter in phi direction, 
@@ -155,7 +162,7 @@ param[17] = 0.;       // rcloud
 param[18] = 0.;       // zshift
 param[19] = 0.;       // limb
 param[20] = 2.;       // tab
-param[21] = 2.;       // sw
+param[21] = 1.;       // sw
 param[22] = 80.;      // ntable
 param[23] = 300.;     // nrad
 param[24] = 1.;       // division
@@ -339,9 +346,15 @@ gamma0 = param[9];
 Np = param[10];
 // Np:Nr - ratio of the primary to the reflected normalization
 NpNr = param[11];
-// nH0 - density profile normalization in 10^15 cm^(-3)
+if( NpNr > 0. ) Np /= NpNr;
+// nH0 - density/ionisation profile normalization in 10^15 cm^(-3)
 nH0 = param[12];
-// q_n - radial power-law density profile
+if (nH0 == 0.) {
+  xs_write("kynrefionx: density/ionisation must be non-zero!", 5);
+  for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+  return;
+}
+// q_n - radial power-law density/ionisation profile
 qn = param[13];
 // Fe abundance (in solar abundance)
 abundance = param[14];
@@ -1071,7 +1084,7 @@ if( Np < 0. ){
   Lx = -Np;
   Np *= - incgamma(2. - gamma0, E0 / EC) / 
         ( incgamma(2. - gamma0, 2. / EC) - incgamma(2. - gamma0, 10. / EC));
-}else{  
+}else{
   Lx = Np / g_L / g_L / transf_o /
        ( incgamma(2. - gamma0, 2. / g_L / EC) - incgamma(2. - gamma0, 10. / g_L / EC));
   Np = Lx * incgamma(2. - gamma0, E0 / EC);        
@@ -1104,18 +1117,19 @@ for (i = 0; i < 2; i++) {
   lensing = (ttmp * transf_d[ir0] + ttmp1 * transf_d[ir0 - 1]) * 
             h * sqrt(1. - 2. * h / (h * h + am2)) / (r * r + h * h) / r;
   if (lensing != 0.) {
-    if (qn != 0.) {
-      if (sw == 1) ionisation = logxi_norm + log10(pow(r, -qn) * lensing * 
-                                gfactor0 * Np / mass2 / nH0);
-      else ionisation = logxi_norm + log10(pow(r, -qn) * lensing * 
-                        pow(gfactor0, gamma0 - 1.) * Np / mass2 / nH0);
-    }
-    else {
-      if (sw == 1) ionisation = logxi_norm + 
-                                log10(lensing * gfactor0 * Np / mass2 / nH0);
-      else ionisation = logxi_norm + 
-                 log10(lensing * pow(gfactor0, gamma0 - 1.) * Np / mass2 / nH0);
-    }
+    if(nH0 > 0.){
+      if (qn != 0.) {
+        if (sw == 1) ionisation = logxi_norm + log10(pow(r, -qn) * lensing * 
+                                  gfactor0 * Np / mass2 / nH0);
+        else ionisation = logxi_norm + log10(pow(r, -qn) * lensing * 
+                          pow(gfactor0, gamma0 - 1.) * Np / mass2 / nH0);
+      } else {
+        if (sw == 1) ionisation = logxi_norm + 
+                                  log10(lensing * gfactor0 * Np / mass2 / nH0);
+        else ionisation = logxi_norm + 
+               log10(lensing * pow(gfactor0, gamma0 - 1.) * Np / mass2 / nH0);
+      }
+    } else ionisation = log10(-nH0) + qn * log10(r);
     if (i == 0) {
       sprintf(kyxiin, "%e", pow(10, ionisation));
       FPMSTR(pkyxiin, kyxiin);
@@ -1187,7 +1201,7 @@ for (ie = 0; ie < ne; ie++) {
 }
 // Let's add primary flux to the solution (note we multiply by dt later on)
 refl_ratio=-1.;
-if (NpNr > 0) {
+if (NpNr != 0) {
 // Let's compute the incomplete gamma function with the XSPEC incgamma 
 // function
   Anorm = LEDD * mass * MPC_2 * ERG * Np / pow(EC, 2. - gamma0) / PI2 / 2. / 
@@ -1197,11 +1211,11 @@ if (NpNr > 0) {
   param1[0] = param[9];
   param1[1] = g_L * zzshift * EC;
   cutoffpl(ear1, ne, param1, photar1);
-  Anorm = Dnorm * NpNr * Anorm * transf_o * pow(g_L * zzshift, gamma0);
+  Anorm *= Dnorm * fabs(NpNr) * transf_o * pow(g_L * zzshift, gamma0);
   flux_refl = flux_prim = 0.;
   for (ie = 0; ie < ne; ie++){
     flux_refl += far[ie];
-    if (ear[ie] > g_L  * zzshift * E0){
+    if (ear[ie] > g_L * zzshift * E0){
       flux_prim += Anorm * photar1[ie];
       far[ie] += Anorm * photar1[ie];
     }
@@ -1263,8 +1277,15 @@ else {
 #ifdef OUTSIDE_XSPEC
 // final spectrum output -- write ear[] and photar[] into file:
 fw = fopen("kynrefionx_photar.dat", "w");
-for (ie = 0; ie < ne; ie++) fprintf(fw, "%14.6f\t%E\n", 0.5*(ear[ie]+ear[ie+1]), 
-  photar[ie] / (ear[ie+1] - ear[ie]));
+
+if( NpNr != 0. )
+  for (ie = 0; ie < ne; ie++) fprintf(fw, "%14.6f\t%E\t%E\n", 
+    0.5*(ear[ie]+ear[ie+1]), 
+    (photar[ie]-Anorm*photar1[ie]) / (ear[ie+1] - ear[ie]),
+    (Anorm*photar1[ie]) / (ear[ie+1] - ear[ie]));  
+else
+  for (ie = 0; ie < ne; ie++) fprintf(fw, "%14.6f\t%E\n", 
+    0.5*(ear[ie]+ear[ie+1]), photar[ie] / (ear[ie+1] - ear[ie]));
 fclose(fw);
 #endif
 /******************************************************************************/
@@ -1288,7 +1309,7 @@ void emis_KYNrefionx(double** ear_loc, const int ne_loc, const int nt,
 // disc surface in polar coords r, phi;
 // cosine of local emission angle --> cosmu
 
-double factor, factor1, gfactor, lensing, ionisation, fluxe[ne_loc];
+double factor, factor1, factor2, gfactor, lensing, ionisation, fluxe[ne_loc];
 double ttmp, ttmp1, y1, y2;
 long   ixi0;
 int    ie, imin, imax, ir0;
@@ -1301,7 +1322,7 @@ int    ie, imin, imax, ir0;
 if (limb == 0) factor = 1. / PI;
 if (limb == 1) factor = 1. / PI / (1. + 2.06 * 2. / 3.) * (1. + 2.06 * cosmu);
 if (limb == 2) factor = 1. / PI * log(1. + 1. / cosmu);
-factor *= nH0;
+if(nH0 > 0.) factor *= nH0;
 // given r, find corresponding indices in radius:
 imin = 0;
 imax = nrad;
@@ -1335,16 +1356,25 @@ if ((ir0 == 0) || (ir0 >= nrad)) {
             h * sqrt(1. - 2. * h / (h * h + am2)) / (r * r + h * h) / r;
 // Let's compute the emitted flux at the particular radius
   if (lensing != 0.) {
-    if (qn != 0.) {
-      if (sw == 1) ionisation = logxi_norm + log10(pow(r, -qn) * lensing * 
-                                gfactor * Np / mass2 / nH0);
-      else ionisation = logxi_norm + log10(pow(r, -qn) * lensing * 
-                        pow(gfactor, gamma0 - 1.) * Np / mass2 / nH0);
-    } else {
-      if (sw == 1) ionisation = logxi_norm + log10(lensing * gfactor * 
-                                Np / mass2 / nH0);
-      else ionisation = logxi_norm + log10(lensing * 
-                        pow(gfactor, gamma0 - 1.) * Np / mass2 / nH0);
+    if(nH0 > 0.){
+      if (qn != 0.) {
+        if (sw == 1) ionisation = logxi_norm + log10(pow(r, -qn) * lensing * 
+                                  gfactor * Np / mass2 / nH0);
+        else ionisation = logxi_norm + log10(pow(r, -qn) * lensing * 
+                          pow(gfactor, gamma0 - 1.) * Np / mass2 / nH0);
+      } else {
+        if (sw == 1) ionisation = logxi_norm + log10(lensing * gfactor * 
+                                  Np / mass2 / nH0);
+        else ionisation = logxi_norm + log10(lensing * 
+                          pow(gfactor, gamma0 - 1.) * Np / mass2 / nH0);
+      }
+      factor1 = 1.;
+    } else{
+      ionisation = log10(-nH0) + qn * log10(r);
+      if(sw==1) factor1 = pow(10, logxi_norm - qn * log10(r)) * 
+                          lensing * gfactor * Np / mass2 / (-nH0);
+      else factor1 = pow10(logxi_norm - qn * log10(r)) *
+                     lensing * pow(gfactor, gamma0 - 1.) * Np / mass2 / (-nH0);
     }
 // give ionisation, find the corresponding index in logXi():
     imin = 0;
@@ -1357,22 +1387,22 @@ if ((ir0 == 0) || (ir0 >= nrad)) {
     }
     if (ixi0 == 0) ixi0 = 1;
     ttmp = (ionisation - logxi[ixi0 - 1]) / (logxi[ixi0] - logxi[ixi0 - 1]);
-    factor1 = 1.;
     if (ttmp < 0.) {
       ttmp = 0.;
-      factor1 = pow(10, ionisation - logxi[0]);
+      factor1 *= pow(10, ionisation - logxi[0]);
     }
     if (ttmp > 1.) {
       ttmp = 1.;
-      factor1 = pow(10, ionisation - logxi[nxi - 1]);
+      factor1 *= pow(10, ionisation - logxi[nxi - 1]);
     }
     ttmp1 = 1. - ttmp;
     for (ie = 0; ie < ne_loc; ie++) {
       y1 = flux1[ie + ne_loc * (ixi0 - 1)];
       y2 = flux1[ie + ne_loc * ixi0];
-      fluxe[ie] = (ttmp1 * y1 + ttmp * y2) * factor * factor1;
+      factor2 = exp( energy1[ie] / EC * (1.-1./gfactor) );
+      fluxe[ie] = (ttmp1 * y1 + ttmp * y2) * factor * factor1 * factor2;
       if (sw == 1) fluxe[ie] *= pow(gfactor, gamma0 - 2.);
-      if (qn != 0.) fluxe[ie] *= pow(r, qn);
+      if (nH0 > 0. && qn != 0.) fluxe[ie] *= pow(r, qn);
     }
   }else for (ie = 0; ie < ne_loc; ie++) fluxe[ie] = 0;
   for (ie = 0; ie < ne_loc; ie++) far_loc[ie] = fluxe[ie];
