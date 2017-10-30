@@ -30,10 +30,10 @@
  * disc and from the disc to the observer). This model calls subroutine ide() 
  * for integrating local emission over the disc and uses the FITS file 
  * 'KBHtablesNN.fits' defining the transfer functions needed for integration 
- * over disc as well as the FITS file 'KBHlamp_q.fits' defining the transfer 
+ * over disc as well as the FITS file 'KBHlamp80.fits' defining the transfer 
  * functions between the source and the disc. For details on ide() and the FITS 
  * file 'KBHtablesNN.fits' see the subroutine ide() in xside.c, for details on 
- * the FITS file 'KBHlamp_q.fits' see the subroutine KYNrlpli() in xsKYNrlpli.c.
+ * the FITS file 'KBHlamp80.fits' see the subroutine KYNrlpli() in xsKYNrlpli.c.
  * The reflection is taken from Garcia et al. tables XILLVER.
  *
  * par1  ... a/M     - black hole angular momentum (-1 <= a/M <= 1)
@@ -69,9 +69,17 @@
  *                    towards the disc
  * par13 ... density  - density profile normalization in 10^15 cm^(-3) 
  *                      if positive
- *                    - ionisation profile normalisation if it is negative
+ *                    - ionisation profile normalisation if it is negative, i.e.
+ *                      xi=-par13*r^par14 if constant density xillver tables are 
+ *                      used
+ *                    - ionisation parameter if it is negative, i.e.
+ *                      xi=-par13 if xillver tables dependent on density are 
+ *                      used
  * par14 ... den_prof - radial power-law density profile if par13 is positive
- *                    - radial ionisation profile if par13 is negative
+ *                    - radial ionisation profile if par13 is negative and
+ *                      if constant density xillver tables are used
+ *                    - density in 10^15 cm^(-3) if par13 is negative and 
+ *                      xillver tables dependent on density are used
  * par15 ... abun   - Fe abundance (in solar abundance)
  * par16 ... E_cut  - the observed (if positive) or intrinsic local at the 
  *                    source (if negative) cut-off energy of the primary X-ray 
@@ -109,6 +117,8 @@
  *                      energy
  *                 8 -> xillver-a-Ec5.fits, angle dependent with free cut-off 
  *                      energy
+ *                 11 -> xillverD-4.fits, angle dependent with cut-off energy at
+ *                      300 keV and with dics density 10^15-10^19
  * par23 ... ntable - table of relativistic transfer functions used in the model
  *                    (defines fits file with tables), 0<= ntable <= 99
  * par24 ... nrad   - number of grid points in radius
@@ -151,7 +161,7 @@ char   initstr[0] = "";
 int    ie;
 
 param[ 0] = 1.;       // a/M
-param[ 1] = 30.;      // theta_o
+param[ 1] = 80.;      // theta_o
 param[ 2] = 1.;       // rin
 param[ 3] = 1.;       // ms
 param[ 4] = 400.;     // rout
@@ -171,7 +181,7 @@ param[17] = 0.;       // beta
 param[18] = 0.;       // rcloud
 param[19] = 0.;       // zshift
 param[20] = 0.;       // limb
-param[21] = 8.;       // tab
+param[21] = 11.;       // tab
 param[22] = 80.;      // ntable
 param[23] = 500.;     // nrad
 param[24] = 1.;       // division
@@ -204,7 +214,7 @@ return(0);
 #define LOGXI_NORM0 4.761609554
 #define PI 3.14159265359
 #define PI2 6.2831853071795865
-#define LAMP "KBHlamp_q.fits"
+#define LAMP "KBHlamp80.fits"
 #define XILLVER1 "xillver.fits"
 #define XILLVER2 "xillver-a.fits"
 #define XILLVER3 "xillver-Ec.fits"
@@ -213,15 +223,16 @@ return(0);
 #define XILLVER6 "xillver-a-Ec3.fits"
 #define XILLVER7 "xillver-a-Ec4.fits"
 #define XILLVER8 "xillver-a-Ec5.fits"
+#define XILLVER11 "xillverD-4.fits"
 #define XILLVER_NORM 1.e20
 
 /* Let's declare variables that are common for the main and emissivity 
    subroutines */
-static float  *radius, *logxi, *Ecut, *cose;
+static float  *radius, *logxi, *Ecut, *logden, *cose;
 static double *gfac, *transf_d, *energy1, *flux1;
 static double h, gamma0, nH0, qn, mass2, am2, r_plus, Np, logxi_norm;
 static double E0, Ecut0;
-static long   nrad, nxi, nEcut, ncose;
+static long   nrad, nxi, nEcut, nlogden, ncose;
 static int    limb, rix;
 
 extern char*  FGMODF(void);
@@ -253,10 +264,10 @@ static char   pname[128] = "KYDIR", pkyLxLamp[128] = "KYLxLamp";
 static char   pkyxiin[128] = "KYXIin", pkyxiout[128] = "KYXIout";
 static char   pkyRefl[128] = "KYRefl";
 static long   nrh, nh, nincl, nener;
-static float  *r_horizon, *height, *incl, *dWadWo, *q, *pr, *dWadSd, *abun,
-              *gam, *emission, *energy0;
+static float  *r_horizon, *height, *incl, *q2_a, *dWadWo, *q, *pr, *dWadSd, 
+              *abun, *gam, *emission, *energy0;
 static long   ne_loc, ngam, nabun;
-static double *energy2, *flux0, transf_o;
+static double *energy2, *flux0, transf_o, beta_a;
 static double h_rh_old = -1., gam_old = -1., abun_old = -1., thetaO_old = -1.,
               am_old = -1.;
 static int    rix_old = -1, first_h = 1, first_rix = 1;
@@ -270,12 +281,13 @@ double far[ne], qar[ne], uar[ne], var[ne], pd[ne], pa[ne], pa2[ne];
 double ttmp, ttmp1, utmp, utmp1, vtmp, vtmp1, y1, y2, y3, y4, y5, y6, y7, y8;
 double pr_final, pom, pom1, pom2, pom3;
 double r, r2, delta, ULt, rms, tmp1, Ut, U_r, UrU_r, Lms, Ems;
-double am, thetaO, rin, rout, h_rh, elow, ehigh;
+double am, thetaO, cosmuO, rin, rout, h_rh, elow, ehigh, alpha2, beta, rcloud,
+       rcloud2;
 double mass, Anorm, Dnorm, g_L, Lx, flux_prim, flux_refl, refl_ratio;
 double zzshift;
 double pamin, pamax, pa2min, pa2max, NpNr;
 double abundance, lensing, gfactor0, ionisation;
-long   igam, iabun, ixi, iEcut, icose;
+long   igam, iabun, ixi, iEcut, ilogden, icose;
 int    imin, imax, irh0, ih0, ith0, ir0, iabun0, igam0;
 int    nspec, polar, stokes;
 int    i, ie, je, quit;
@@ -310,19 +322,24 @@ r_plus = 1. + sqrt(1. - am2);
 // thetaO - observer inclination
 ide_param[1] = param[1];
 thetaO = ide_param[1];
+cosmuO = cos(thetaO/180.*PI);
 // rin - inner edge of non-zero disc emissivity
 ide_param[2] = param[2];
 if (param[3] == 1.)
   if (param[2] < rms) rin = rms;
   else rin = param[2];
-else
+else if (param[3] == 2.) rin = param[2] * rms;
+else if (param[3] == 0.)
   if (param[2] < r_plus) rin = r_plus;
   else rin = param[2];
+else rin=0.;
 // ms - whether to integrate from rin or rms
 ide_param[3] = param[3];
 // rout - outer edge of non-zero disc emissivity
 ide_param[4] = param[4];
-rout = param[4];
+if( param[3] == 1 || param[3] == 0 ) rout = param[4];
+else if( param[3] == 2 ) rout = param[4] * rms;
+else rout=0.;
 // phi  - lower azimuth of non-zero disc emissivity (deg)
 ide_param[5] = param[5];
 // dphi - (phi+dphi) is upper azimuth of non-zero disc emissivity (deg)
@@ -405,6 +422,7 @@ switch (rix) {
   case 6: sprintf(xillver, XILLVER6); break;
   case 7: sprintf(xillver, XILLVER7); break;
   case 8: sprintf(xillver, XILLVER8); break;
+  case 11: sprintf(xillver, XILLVER11); Ecut0=-300.; break;
 }
 E0 = 0.1;
 nener = 600;
@@ -432,10 +450,12 @@ ide_param[17] = polar;
 ide_param[20] = param[27];
 // alpha - position of the cloud in alpha impact parameter (in GM/c^2)
 ide_param[21] = param[16];
+alpha2 = param[16]*param[16];
 // beta - position of the cloud in beta impact parameter (in GM/c^2)
-ide_param[22] = param[17];
+beta = ide_param[22] = param[17];
 // rcloud - radius of the cloud (in GM/c^2)
-ide_param[23] = param[18];
+rcloud = ide_param[23] = param[18];
+rcloud2 = rcloud*rcloud;
 //whether the flux defined in emissivity subroutine is local one (0) or the 
 //observed one (1)
 ide_param[24] = 0.;
@@ -457,7 +477,7 @@ if (first_h) {
   else if (kydir[strlen(kydir) - 1] == '/') sprintf(tables_file, "%s%s",
                                                     kydir, LAMP);
   else sprintf(tables_file, "%s/%s", kydir, LAMP);
-// Let's read the 'KBHlamp_q' fits file
+// Let's read the 'KBHlamp80' fits file
 // The status parameter must always be initialized.
   status = 0;
   ffopen(&fptr, tables_file, READONLY, &status);
@@ -555,8 +575,13 @@ if (first_h) {
 //******************************************************************************
 //  for (i = 0; i < nrad; i++) fprintf(stdout, "%f\n", radius[i]);
 //******************************************************************************
-// Let's read the tables for dWadWo, q, p^r and dWadSd
+// Let's read the tables for q2_a, dWadWo, q, p^r and dWadSd
 // allocate memory for the arrays
+  if ((q2_a = (float *) malloc(nincl * nh * nrh * sizeof(float))) == NULL) {
+    xs_write("kynxillver: Failed to allocate memory for tmp arrays.", 5);
+    for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+    return;
+  }
   if ((dWadWo = (float *) malloc(nincl * nh * nrh * sizeof(float))) == NULL) {
     xs_write("kynxillver: Failed to allocate memory for tmp arrays.", 5);
     for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
@@ -588,20 +613,23 @@ if (first_h) {
     nelements2 = nrow * nrad;
     for (irow = 0; irow < nh; irow += nrow) {
 //    the last block to read may be smaller:
-      if ((nrad - irow) < nrow) {
-        nelements1 = (nrad - irow) * nincl;
-        nelements2 = (nrad - irow) * nrad;
+      if ((nh - irow) < nrow) {
+        nelements1 = (nh - irow) * nincl;
+        nelements2 = (nh - irow) * nrad;
       }
       ffgcv(fptr, TFLOAT, 1, irow + 1, 1, nelements1, &float_nulval, 
+            &q2_a[irow * nincl + nh * nincl * ihorizon],
+            &anynul, &status);
+      ffgcv(fptr, TFLOAT, 2, irow + 1, 1, nelements1, &float_nulval, 
             &dWadWo[irow * nincl + nh * nincl * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 2, irow + 1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 4, irow + 1, 1, nelements2, &float_nulval, 
             &q[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 3, irow + 1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 5, irow + 1, 1, nelements2, &float_nulval, 
             &pr[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 4, irow + 1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 6, irow + 1, 1, nelements2, &float_nulval, 
             &dWadSd[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
     }
@@ -613,7 +641,8 @@ if (first_h) {
   int irh, ih;
   irh=20;
   ih=99;
-  for (i = 0; i < nincl; i++) fprintf(stdout, "%d\t%f\t%f\n", i, incl[i],
+  for (i = 0; i < nincl; i++) fprintf(stdout, "%d\t%f\t%f\t%f\n", i, incl[i],
+    q2_a[i + nincl * ih + nincl * nh * irh],
     dWadWo[i + nincl * ih + nincl * nh * irh]);
   for (i = 0; i < nrad; i++) fprintf(stdout, "%d\t%f\t%f\t%f\t%f\n", i, 
     radius[i], q[i + nrad * ih + nrad * nh * irh], 
@@ -702,6 +731,22 @@ if ((am != am_old) || (h_rh != h_rh_old) || (thetaO != thetaO_old)) {
 //if ((imax == nincl) && (thetaO > incl[nincl - 1])) ith0 = nincl;
   vtmp = (thetaO - incl[ith0 - 1]) / (incl[ith0] - incl[ith0 - 1]);
   vtmp1 = 1. - vtmp;
+// impact parameter beta_a from the axis to the observer
+  y1 = q2_a[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * (irh0 - 1)];
+  y2 = q2_a[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * irh0];
+  y3 = q2_a[ith0 - 1 + nincl * ih0 + nincl * nh * irh0];
+  y4 = q2_a[ith0 - 1 + nincl * ih0 + nincl * nh * (irh0 - 1)];
+  y5 = q2_a[ith0 + nincl * (ih0 - 1) + nincl * nh * (irh0 - 1)];
+  y6 = q2_a[ith0 + nincl * (ih0 - 1) + nincl * nh * irh0];
+  y7 = q2_a[ith0 + nincl * ih0 + nincl * nh * irh0];
+  y8 = q2_a[ith0 + nincl * ih0 + nincl * nh * (irh0 - 1)];
+  beta_a = (vtmp1 * (utmp1 * (ttmp1 * y1 + ttmp * y2) +
+                       utmp *  (ttmp * y3 + ttmp1 * y4)) +
+              vtmp * (utmp1 * (ttmp1 * y5 + ttmp * y6) +
+                      utmp *  (ttmp * y7 + ttmp1 * y8)));
+  beta_a += cosmuO*cosmuO*am2;
+  if(beta_a <= 0.)beta_a = 0.;
+  beta_a = sqrt(beta_a);
 // transfer function from the axis to the observer
   y1 = dWadWo[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * (irh0 - 1)];
   y2 = dWadWo[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * irh0];
@@ -788,6 +833,7 @@ if ((strcmp(kydir, FGMSTR(pname)) != 0) || (rix != rix_old) || first_rix) {
   xs_write(text, 5);
   xs_write("Garcia & Kallman (2010), ApJ, 718, 695", 5);
   xs_write("Garcia et al. (2013), ApJ, 768, 2", 5);
+  if(rix == 11)xs_write("Garcia et al. (2016), MNRAS, 462, 751", 5);
 // The status parameter must always be initialized.
   status = 0;
 // Open the FITS file for readonly access
@@ -873,6 +919,15 @@ if ((strcmp(kydir, FGMSTR(pname)) != 0) || (rix != rix_old) || first_rix) {
     case 1: {
       nspec = ngam * nxi * nabun;
     } break;
+    case 11:{
+      frow = 4;
+      ffgcv(fptr, TLONG, colnum, frow, felem, nelems, &float_nulval, &nlogden,
+            &anynul, &status);
+      frow = 5;
+      ffgcv(fptr, TLONG, colnum, frow, felem, nelems, &float_nulval, &ncose,
+            &anynul, &status);
+      nspec = ngam * nabun * nxi * nlogden * ncose;
+    } break;
     default: {
       frow = 4;
       ffgcv(fptr, TLONG, colnum, frow, felem, nelems, &float_nulval, &nEcut,
@@ -893,6 +948,10 @@ if ((strcmp(kydir, FGMSTR(pname)) != 0) || (rix != rix_old) || first_rix) {
     } break;
     case 1: {
       fprintf(stdout,"%ld %ld %ld\n", ngam, nxi, nabun);
+    } break;
+    case 11: {
+      fprintf(stdout,"%ld %ld %ld %ld %ld\n", ngam, nabun, nxi, nlogden,
+              ncose);
     } break;
     default: {
       fprintf(stdout,"%ld %ld %ld %ld %ld\n", ngam, nabun, nxi, nEcut,
@@ -959,6 +1018,28 @@ if ((strcmp(kydir, FGMSTR(pname)) != 0) || (rix != rix_old) || first_rix) {
     case 1: {
       for (i = 0; i < nxi; i++) logxi[i] = log10(logxi[i]);
     } break;
+    case 11: {
+      if ((logden = (float *) malloc(nlogden * sizeof(float))) == NULL) {
+        xs_write("kynxillver: Failed to allocate memory for tmp arrays.", 5);
+        for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+        return;
+      }
+      if ((cose = (float *) malloc(ncose * sizeof(float))) == NULL) {
+        xs_write("kynxillver: Failed to allocate memory for tmp arrays.", 5);
+        for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+        return;
+      }
+      frow = 4;
+      nelems = nlogden;
+      ffgcv(fptr, TFLOAT, colnum, frow, felem, nelems, &float_nulval, logden,
+            &anynul, &status);
+      frow = 5;
+      nelems = ncose;
+      ffgcv(fptr, TFLOAT, colnum, frow, felem, nelems, &float_nulval, cose,
+            &anynul, &status);
+      for (icose = 0; icose < ncose; icose++)
+        cose[icose] = cos(cose[icose]/180.*PI);
+    } break;
     default: {
       if ((Ecut = (float *) malloc(nEcut * sizeof(float))) == NULL) {
         xs_write("kynxillver: Failed to allocate memory for tmp arrays.", 5);
@@ -986,22 +1067,27 @@ if ((strcmp(kydir, FGMSTR(pname)) != 0) || (rix != rix_old) || first_rix) {
   switch (rix) {
     case 3: {
       for(i = 0; i < 15; i++)
-        fprintf(stdout,"%4d %12.1f %12.1f %12.1f %12.1f\n", i, gam[i],
+        fprintf(stdout,"%4d %12.1f %12.1f %12.6f %12.1f\n", i, gam[i],
                 abun[i], logxi[i], Ecut[i]);
     } break;
     case 2: {
       for(i = 0; i < 15; i++)
-        fprintf(stdout,"%4d %12.1f %12.1f %12.1f %12.1f\n", i, gam[i],
+        fprintf(stdout,"%4d %12.1f %12.6f %12.1f %12.6f\n", i, gam[i],
                 logxi[i], abun[i], cose[i]);
     } break;
     case 1: {
       for(i = 0; i < 15; i++)
-        fprintf(stdout,"%4d %12.1f %12.1f %12.1f\n", i, gam[i],
+        fprintf(stdout,"%4d %12.1f %12.6f %12.1f\n", i, gam[i],
                 logxi[i], abun[i]);
+    } break;
+    case 11: {
+      for(i = 0; i < 15; i++)
+        fprintf(stdout,"%4d %12.1f %12.1f %12.6f %12.6f %12.6f\n", i, gam[i],
+                abun[i], logxi[i], logden[i], cose[i]);
     } break;
     default: {
       for(i = 0; i < 15; i++)
-        fprintf(stdout,"%4d %12.1f %12.1f %12.1f %12.1f %12.1f\n", i, gam[i],
+        fprintf(stdout,"%4d %12.1f %12.1f %12.6f %12.1f %12.6f\n", i, gam[i],
                 abun[i], logxi[i], Ecut[i], cose[i]);
     } break;
   }
@@ -1098,6 +1184,32 @@ if ((strcmp(kydir, FGMSTR(pname)) != 0) || (rix != rix_old) || first_rix) {
               (ne_loc - 1) * nabun * nxi * (igam - 1)], &anynul, &status);
       }
     } break;
+    case 11: {
+      for (irow = 0; irow < nspec; irow += nrow) {
+// the last block to read may be smaller:
+        if ((nspec - irow) < nrow) nelements = (nspec - irow) * (ne_loc - 1);
+        igam = irow / (nabun * nxi * nlogden * ncose) + 1;
+        iabun = (irow - (igam - 1) * nabun * nxi * nlogden * ncose) /
+                (nxi * nlogden * ncose) + 1;
+        ixi = (irow - (igam - 1) * nabun * nxi * nlogden * ncose - 
+              (iabun - 1)* nxi * nlogden * ncose) /
+              (nlogden * ncose) + 1;
+        ilogden = (irow - (igam - 1) * nabun * nxi * nlogden * ncose - 
+                (iabun - 1)* nxi * nlogden * ncose - 
+                (ixi - 1) * nlogden * ncose) / ncose + 1;
+        icose = irow - (igam - 1) * nabun * nxi * nlogden * ncose - 
+                      (iabun - 1)* nxi * nlogden * ncose - 
+                      (ixi - 1) * nlogden * ncose -
+                      (ilogden - 1) * ncose + 1;
+        ffgcv(fptr, TFLOAT, 2, irow + 1, 1, nelements, &float_nulval, 
+              &emission[(ne_loc - 1) * (icose - 1) + 
+              (ne_loc - 1) * ncose * (ilogden - 1) + 
+              (ne_loc - 1) * ncose * nlogden * (ixi - 1) + 
+              (ne_loc - 1) * ncose * nlogden * nxi * (iabun - 1) + 
+              (ne_loc - 1) * ncose * nlogden * nxi * nabun * (igam - 1)], 
+              &anynul, &status);
+      }
+    } break;
     default: {
       for (irow = 0; irow < nspec; irow += nrow) {
 // the last block to read may be smaller:
@@ -1129,7 +1241,7 @@ if ((strcmp(kydir, FGMSTR(pname)) != 0) || (rix != rix_old) || first_rix) {
   ffclos(fptr, &status);
 /*******************************************************************************
   icose = 2;
-  iEcut = 9;
+  iEcut = ilogden = 9;
   ixi = 7;
   iabun = 2;
   igam = 6;
@@ -1201,6 +1313,27 @@ if ((strcmp(kydir, FGMSTR(pname)) != 0) || (rix != rix_old) || first_rix) {
                 (energy0[ie + 1] - energy0[ie]));
       fclose(fw);
     } break;
+    case 11: {
+      fprintf(stdout, "%f %f %f %f %f\n", gam[igam - 1], abun[iabun - 1], 
+                                          logxi[ixi - 1], logden[ilogden - 1], 
+                                          cose[icose - 1]);
+//       for(ie = 0; ie < ne_loc; ie++)
+      for(ie = 0; ie < 10; ie++)
+        fprintf(stdout, "%d %f %E\n", ie, energy0[ie], 
+                emission[ie + (ne_loc - 1) * (icose - 1) + 
+                (ne_loc - 1) * ncose * (ilogden - 1) + 
+                (ne_loc - 1) * ncose * nlogden * (ixi - 1) + 
+                (ne_loc - 1) * ncose * nlogden * nxi * (iabun - 1) + 
+                (ne_loc - 1) * ncose * nlogden * nxi * nabun * (igam - 1)]);
+      fprintf(stdout, "--------\n");
+      for(ie = ne_loc - 10; ie < ne_loc - 1; ie++)
+        fprintf(stdout, "%d %f %E\n", ie, energy0[ie], 
+                emission[ie + (ne_loc - 1) * (icose - 1) + 
+                (ne_loc - 1) * ncose * (ilogden - 1) + 
+                (ne_loc - 1) * ncose * nlogden * (ixi - 1) + 
+                (ne_loc - 1) * ncose * nlogden * nxi * (iabun - 1) + 
+                (ne_loc - 1) * ncose * nlogden * nxi * nabun * (igam - 1)]);
+    } break;
     default: {
       fprintf(stdout, "%f %f %f %f %f\n", gam[igam - 1], abun[iabun - 1], 
                                           logxi[ixi - 1], Ecut[iEcut - 1], 
@@ -1261,6 +1394,20 @@ if ((strcmp(kydir, FGMSTR(pname)) != 0) || (rix != rix_old) || first_rix) {
         return;
       }
       if ((flux1 = (double *) malloc(nener * nxi * sizeof(double))) == NULL) {
+        xs_write("kynxillver: Failed to allocate memory for tmp arrays.", 5);
+        for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+        return;
+      }
+    } break;
+    case 11: {
+      if ((flux0 = (double *) malloc(ne_loc * ncose * nlogden * nxi * 
+                                     sizeof(double))) == NULL) {
+        xs_write("kynxillver: Failed to allocate memory for tmp arrays.", 5);
+        for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+        return;
+      }
+      if ((flux1 = (double *) malloc(nener * ncose * nlogden * nxi *
+                                     sizeof(double))) == NULL) {
         xs_write("kynxillver: Failed to allocate memory for tmp arrays.", 5);
         for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
         return;
@@ -1400,6 +1547,38 @@ if ((rix != rix_old) || (strcmp(kydir, FGMSTR(pname)) != 0) || ((abun_old == -1.
                                       utmp * (ttmp * y3 + ttmp1 * y4));
         }
     } break;
+    case 11: {
+      for (ixi = 0; ixi < nxi; ixi++)
+        for (ilogden = 0; ilogden < nlogden; ilogden++)
+          for (icose = 0; icose < ncose; icose++)
+            for (ie = 0; ie < ne_loc - 1; ie++) {
+              y1 = emission[ie + (ne_loc - 1) * icose + 
+                (ne_loc - 1) * ncose * ilogden + 
+                (ne_loc - 1) * ncose * nlogden * ixi + 
+                (ne_loc - 1) * ncose * nlogden * nxi * (iabun0 - 1) + 
+                (ne_loc - 1) * ncose * nlogden * nxi * nabun * (igam0 - 1)];
+              y2 = emission[ie + (ne_loc - 1) * icose + 
+                (ne_loc - 1) * ncose * ilogden + 
+                (ne_loc - 1) * ncose * nlogden * ixi + 
+                (ne_loc - 1) * ncose * nlogden * nxi * iabun0 + 
+                (ne_loc - 1) * ncose * nlogden * nxi * nabun * (igam0 - 1)];
+              y3 = emission[ie + (ne_loc - 1) * icose + 
+                (ne_loc - 1) * ncose * ilogden + 
+                (ne_loc - 1) * ncose * nlogden * ixi + 
+                (ne_loc - 1) * ncose * nlogden * nxi * iabun0 + 
+                (ne_loc - 1) * ncose * nlogden * nxi * nabun * igam0];
+              y4 = emission[ie + (ne_loc - 1) * icose + 
+                (ne_loc - 1) * ncose * ilogden + 
+                (ne_loc - 1) * ncose * nlogden * ixi + 
+                (ne_loc - 1) * ncose * nlogden * nxi * (iabun0 - 1) + 
+                (ne_loc - 1) * ncose * nlogden * nxi * nabun * igam0];
+              flux0[ie + ne_loc * icose + ne_loc * ncose * ilogden + 
+                ne_loc * ncose * nlogden * ixi] = (utmp1 *
+                                                      (ttmp1 * y1 + ttmp * y2) + 
+                                                       utmp *
+                                                      (ttmp * y3 + ttmp1 * y4));
+        }
+    } break;
     default: {
       for (ixi = 0; ixi < nxi; ixi++)
         for (iEcut = 0; iEcut < nEcut; iEcut++)
@@ -1435,7 +1614,7 @@ if ((rix != rix_old) || (strcmp(kydir, FGMSTR(pname)) != 0) || ((abun_old == -1.
   }
 /*******************************************************************************
   icose = 2;
-  iEcut = 9;
+  iEcut = ilogden = 9;
   ixi = 7;
   switch (rix) {
     case 3: {
@@ -1495,6 +1674,31 @@ if ((rix != rix_old) || (strcmp(kydir, FGMSTR(pname)) != 0) || ((abun_old == -1.
       for(ie = 0; ie < ne_loc - 1; ie++)
         fprintf(fw, "%d %f %E\n", ie, energy0[ie], 
                 flux0[ie + ne_loc * (ixi - 1)] /
+                (energy0[ie + 1] - energy0[ie]));
+      fclose(fw);
+    } break;
+    case 11: {
+      fprintf(stdout, "%d %d %ld %ld %ld\n", igam0, iabun0, ixi, ilogden,
+              icose);
+      fprintf(stdout, "%f %f %f %f %f\n", gam[igam0 - 1], abun[iabun0 - 1], 
+              logxi[ixi - 1], logden[ilogden - 1], cose[icose - 1]);
+      for(ie = 0; ie < 10; ie++)
+        fprintf(stdout, "%d %f %E\n", ie, energy0[ie], 
+                flux0[ie + ne_loc * (icose - 1) +
+                ne_loc * ncose * (ilogden - 1) + 
+                ne_loc * ncose * nlogden * (ixi - 1)]);
+      fprintf(stdout, "--------\n");
+      for(ie = ne_loc - 10; ie < ne_loc - 1; ie++)
+        fprintf(stdout, "%d %f %E\n", ie, energy0[ie], 
+                flux0[ie + ne_loc * (icose - 1) +
+                ne_loc * ncose * (ilogden - 1) + 
+                ne_loc * ncose * nlogden * (ixi - 1)]);
+      fw = fopen("flux1.dat", "w");
+      for(ie = 0; ie < ne_loc - 1; ie++)
+        fprintf(fw, "%d %f %E\n", ie, energy0[ie], 
+                flux0[ie + ne_loc * (icose - 1) +
+                ne_loc * ncose * (ilogden - 1) + 
+                ne_loc * ncose * nlogden * (ixi - 1)] /
                 (energy0[ie + 1] - energy0[ie]));
       fclose(fw);
     } break;
@@ -1643,6 +1847,53 @@ if ((rix != rix_old) || (strcmp(kydir, FGMSTR(pname)) != 0) || ((abun_old == -1.
         for (ie = 0; ie < nener; ie++) 
           flux1[ie + nener * ixi] /= (energy2[ie + 1] - energy2[ie]);
     } break;
+    case 11: {
+      for (ixi = 0; ixi < nxi; ixi++)
+        for (ilogden = 0; ilogden < nlogden; ilogden++)
+          for (icose = 0; icose < ncose; icose++)
+            for (ie = 0; ie < nener; ie++) flux1[ie + nener * icose +
+                                                 nener * ncose * ilogden +
+                                        nener * ncose * nlogden * ixi] = 0.;
+      ie = 1;
+      while (energy0[ie] <= energy2[0]) ie++;
+      je = 1;
+      quit = 0;
+      while ((ie <= (ne_loc - 1)) && (energy0[ie - 1] < energy2[nener])) {
+        ttmp = energy0[ie] - energy0[ie - 1];
+        while (energy2[je - 1] < energy0[ie]) {
+          if (energy2[je - 1] < energy0[ie - 1]) utmp = energy0[ie - 1];
+          else utmp = energy2[je - 1];
+          if (energy2[je] < energy0[ie]) utmp1 = energy2[je];
+          else utmp1 = energy0[ie];
+          if (utmp1 > utmp)
+            for (ixi = 0; ixi < nxi; ixi++)
+              for (ilogden = 0; ilogden < nlogden; ilogden++)
+                for (icose = 0; icose < ncose; icose++)
+                  flux1[je - 1 + nener * icose +
+                        nener * ncose * ilogden +
+                        nener * ncose * nlogden * ixi] +=
+                    flux0[ie - 1 + ne_loc * icose +
+                          ne_loc * ncose * ilogden + 
+                          ne_loc * ncose * nlogden * ixi] * 
+                      (utmp1 - utmp) / ttmp;
+          if (je < nener) je++;
+          else {
+            quit = 1;
+            break;
+          }
+        }
+        if (quit) break;
+        if (energy2[je - 1] > energy0[ie]) je--;
+        ie++;
+      }
+      for (ixi = 0; ixi < nxi; ixi++)
+        for (ilogden = 0; ilogden < nlogden; ilogden++)
+          for (icose = 0; icose < ncose; icose++)
+            for (ie = 0; ie < nener; ie++) 
+              flux1[ie + nener * icose + nener * ncose * ilogden +
+                    nener * ncose * nlogden * ixi] /=
+                                                (energy2[ie + 1] - energy2[ie]);
+    } break;
     default: {
       for (ixi = 0; ixi < nxi; ixi++)
         for (iEcut = 0; iEcut < nEcut; iEcut++)
@@ -1693,7 +1944,7 @@ if ((rix != rix_old) || (strcmp(kydir, FGMSTR(pname)) != 0) || ((abun_old == -1.
   }
 /*******************************************************************************
   icose = 2;
-  iEcut = 9;
+  iEcut = ilogden = 9;
   ixi = 7;
   switch (rix) {
     case 3: {
@@ -1771,6 +2022,38 @@ if ((rix != rix_old) || (strcmp(kydir, FGMSTR(pname)) != 0) || ((abun_old == -1.
       for (ie = 0; ie < nener; ie++)
         fprintf(fw, "%d %f %E\n", ie, energy1[ie], 
                 flux1[ie + nener * (ixi - 1)]);
+      fclose(fw);
+    } break;
+    case 11: {
+      fprintf(stdout, "%d %d %ld %ld %ld\n", igam0, iabun0, ixi, ilogden,
+              icose);
+      fprintf(stdout, "%f %f %f %f %f\n", gam[igam0 - 1], abun[iabun0 - 1], 
+              logxi[ixi - 1], logden[ilogden - 1], cose[icose - 1]);
+      for(ie = 0; ie < 10; ie++)
+        fprintf(stdout, "%d %f %E\n", ie, energy1[ie], 
+                flux1[ie + nener * (icose - 1) +
+                      nener * ncose * (ilogden - 1) + 
+                      nener * ncose * nlogden * (ixi - 1)]);
+      fprintf(stdout, "--------\n");
+      for(ie = nener - 10; ie < nener - 1; ie++)
+        fprintf(stdout, "%d %f %E\n", ie, energy1[ie], 
+                flux1[ie + nener * (icose - 1) +
+                      nener * ncose * (ilogden - 1) + 
+                      nener * ncose * nlogden * (ixi - 1)]);
+      fw = fopen("flux0.dat", "w");
+      for (ie = 0; ie < ne_loc - 1; ie++)
+        fprintf(fw, "%d %f %E\n", ie, energy0[ie], 
+                flux0[ie + ne_loc * (icose - 1) +
+                      ne_loc * ncose * (ilogden - 1) + 
+                      ne_loc * ncose * nlogden * (ixi - 1)] / 
+                (energy0[ie + 1] - energy0[ie]));
+      fclose(fw);
+      fw = fopen("flux1.dat", "w");
+      for (ie = 0; ie < nener; ie++)
+        fprintf(fw, "%d %f %E\n", ie, energy1[ie], 
+                flux1[ie + nener * (icose - 1) +
+                      nener * ncose * (ilogden - 1) + 
+                      nener * ncose * nlogden * (ixi - 1)]);
       fclose(fw);
     } break;
     default: {
@@ -1867,7 +2150,10 @@ for (i = 0; i < 2; i++) {
       else {
         ionisation = logxi_norm + log10(lensing * gfactor0 * Np / mass2 / nH0);
       }
-    } else ionisation = log10(-nH0) + qn * log10(r);
+    } else {
+      if(rix != 11)ionisation = log10(-nH0) + qn * log10(r);
+      else ionisation = log10(-nH0);
+    }
     if (i == 0) {
       sprintf(kyxiin, "%e", pow(10, ionisation));
       FPMSTR(pkyxiin, kyxiin);
@@ -1939,7 +2225,8 @@ for (ie = 0; ie < ne; ie++) {
 }
 // Let's add primary flux to the solution (note we multiply by dt later on)
 refl_ratio=-1.;
-if (NpNr != 0) {
+if (NpNr != 0 && ( (rcloud >= 0. && rcloud2 < ( (beta_a-beta)*(beta_a-beta) + alpha2 )) || 
+                   (rcloud < 0. && rcloud2 >= ( (beta_a-beta)*(beta_a-beta) + alpha2 )) ) ) {
 // Let's compute the incomplete gamma function with the XSPEC incgamma 
 // function
   Anorm = LEDD * mass * MPC_2 * ERG * Np / pow(Ecut0, 2. - gamma0) / PI2 / 2. / 
@@ -1996,17 +2283,18 @@ else {
     if ((pa2max + pa2min) > 180.) pa2[ie] -= 180.;
     if ((pa2max + pa2min) < -180.) pa2[ie] += 180.;
     fprintf(fw,
-      "%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\n", 
+      "%E\t%E\t%E\t%E\t%E\t%E\t%E\t%E\n", 
       0.5 * (ear[ie] + ear[ie+1]), far[ie] / (ear[ie+1] - ear[ie]), 
       qar[ie] / (ear[ie+1] - ear[ie]), uar[ie] / (ear[ie+1] - ear[ie]), 
       var[ie] / (ear[ie+1] - ear[ie]), pd[ie], pa[ie], pa2[ie]);
 //interface with XSPEC..........................................................
-    if (stokes == 1) photar[ie] = qar[ie];
-    if (stokes == 2) photar[ie] = uar[ie];
-    if (stokes == 3) photar[ie] = var[ie];
-    if (stokes == 4) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 5) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 6) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 1) photar[ie] = far[ie];
+    if (stokes == 2) photar[ie] = qar[ie];
+    if (stokes == 3) photar[ie] = uar[ie];
+    if (stokes == 4) photar[ie] = var[ie];
+    if (stokes == 5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
   }
   fclose(fw);
 }
@@ -2016,7 +2304,8 @@ else {
 // final spectrum output -- write ear[] and photar[] into file:
 fw = fopen("kynxillver_photar.dat", "w");
 
-if( NpNr != 0. )
+if( NpNr != 0. && ( (rcloud >= 0. && rcloud2 < ( (beta_a-beta)*(beta_a-beta) + alpha2 )) || 
+                   (rcloud < 0. && rcloud2 >= ( (beta_a-beta)*(beta_a-beta) + alpha2 )) ) )
   for (ie = 0; ie < ne; ie++) fprintf(fw, "%14.6f\t%E\t%E\n", 
     0.5*(ear[ie]+ear[ie+1]), 
     (photar[ie]-Anorm*photar1[ie]) / (ear[ie+1] - ear[ie]),
@@ -2050,8 +2339,8 @@ void emis_KYNxillver(double** ear_loc, const int ne_loc, const int nt,
 double factor, factor1, factor2, factor3, factor4, gfactor, lensing, ionisation;
 double fluxe[ne_loc];
 double ttmp, ttmp1, utmp, utmp1, vtmp, vtmp1, y1, y2, y3, y4, y5, y6, y7, y8;
-double Ecut1;
-long   ixi0, icose0, iEcut0;
+double Ecut1, logden1;
+long   ixi0, icose0, iEcut0, ilogden0;
 int    ie, imin, imax, ir0;
 
 *ear_loc = energy1;
@@ -2104,9 +2393,16 @@ if ((ir0 == 0) || (ir0 >= nrad)) {
       }
       factor1=1.;
     } else{
-      ionisation = log10(-nH0) + qn * log10(r);
-      factor1 = pow(10, logxi_norm - qn * log10(r)) * 
-                lensing * gfactor * Np / mass2 / (-nH0);
+      if(rix != 11){
+        ionisation = log10(-nH0) + qn * log10(r);
+        factor1 = pow(10, logxi_norm - qn * log10(r)) * 
+                  lensing * gfactor * Np / mass2 / (-nH0);
+      } else{
+        ionisation = log10(-nH0);
+//in the following qn means density in units of 10^15 cm^(-3)
+        factor1 = pow(10, logxi_norm) * 
+                  lensing * gfactor * Np / mass2 / qn / (-nH0);
+      }
     }
     Ecut1=Ecut0*gfactor;
 //------------------------------------------------------------------------------
@@ -2201,11 +2497,11 @@ if ((ir0 == 0) || (ir0 >= nrad)) {
                      ne_loc * ncose * (ixi0 - 1)];
           y4 = flux1[ie + ne_loc * icose0 +
                      ne_loc * ncose * ixi0];
-          factor2 = exp( energy1[ie] / Ecut0 * (1.-1./gfactor) );
+//          factor2 = exp( energy1[ie] / Ecut0 * (1.-1./gfactor) );
           fluxe[ie] = (utmp1 * (ttmp1 * y1 + ttmp * y2) +
-                       utmp * (ttmp1 * y3 + ttmp * y4)) * factor * factor1 *
-                       factor2;
-        }              
+                       utmp * (ttmp1 * y3 + ttmp * y4)) * factor * factor1;
+//                       * factor2;
+        }
       } break;
       case 1: {
         factor *= pow(gfactor, gamma0 - 2.);
@@ -2213,8 +2509,90 @@ if ((ir0 == 0) || (ir0 >= nrad)) {
         for (ie = 0; ie < ne_loc; ie++) {
           y1 = flux1[ie + ne_loc * (ixi0 - 1)];
           y2 = flux1[ie + ne_loc * ixi0];
-          factor2 = exp( energy1[ie] / Ecut0 * (1.-1./gfactor) );
-          fluxe[ie] = (ttmp1 * y1 + ttmp * y2) * factor * factor1 * factor2;
+//          factor2 = exp( energy1[ie] / Ecut0 * (1.-1./gfactor) );
+          fluxe[ie] = (ttmp1 * y1 + ttmp * y2) * factor * factor1;
+//                      * factor2;
+        }
+      } break;
+      case 11: {
+// give logden1, find the corresponding index in logden[]:
+        if(nH0 > 0)logden1 = log10(nH0)+15.+qn*log10(r);
+        else logden1 = log10(qn)+15.;
+        imin = 0;
+        imax = nlogden;
+        ilogden0 = nlogden / 2;
+        while ((imax - imin) > 1) {
+          if (logden1 >= logden[ilogden0 - 1]) imin = ilogden0;
+          else imax = ilogden0;
+          ilogden0 = (imin + imax) / 2;
+        }
+        if (ilogden0 == 0) ilogden0 = 1;
+        utmp = (logden1 - logden[ilogden0 - 1]) / (logden[ilogden0] - logden[ilogden0 - 1]);
+        factor=1;
+        if (utmp < 0.){
+          utmp = 0.;
+          factor *= pow10(logden1-logden[ilogden0 - 1]);
+//          logden1 = logden[ilogden0 - 1];
+        }
+        if (utmp > 1.){
+          utmp = 1.;
+          factor *= pow10(logden1-logden[ilogden0]);
+//          logden1 = logden[ilogden0];
+        }
+        utmp1 = 1. - utmp;
+//------------------------------------------------------------------------------
+// given cosmu, find the corresponding index in cose[]:
+        imin = 0;
+        imax = ncose;
+        icose0 = ncose / 2;
+        while ((imax - imin) > 1) {
+          if (cosmu <= cose[icose0 - 1]) imin = icose0;
+          else imax = icose0;
+          icose0 = (imin + imax) / 2;
+        }
+        if (icose0 == 0) icose0 = 1;
+        vtmp = (cosmu - cose[icose0 - 1]) /
+               (cose[icose0] - cose[icose0 - 1]);
+        if (vtmp < 0.) vtmp = 0.;
+        if (vtmp > 1.) vtmp = 1.;
+        vtmp1 = 1. - vtmp;
+//the factor of 2. (or 1/4pi) is here due to definition of flux in terms of
+//intensity used in xillver, there the source intensity is defined as axially
+//symmetric 2*Fx instead of Fx/2pi, see eq. (8) of Garcia et al (2013)...
+        factor *= pow(gfactor, gamma0 - 2.) / PI2 / 2.;
+//------------------------------------------------------------------------------
+        for (ie = 0; ie < ne_loc; ie++) {
+          y1 = flux1[ie + ne_loc * (icose0 - 1) +
+                     ne_loc * ncose * (ilogden0 - 1) +
+                     ne_loc * ncose * nlogden * (ixi0 - 1)];
+          y2 = flux1[ie + ne_loc * (icose0 - 1) +
+                     ne_loc * ncose * (ilogden0 - 1) + 
+                     ne_loc * ncose * nlogden * ixi0];
+          y3 = flux1[ie + ne_loc * (icose0 - 1) +
+                     ne_loc * ncose * ilogden0 + 
+                     ne_loc * ncose * nlogden * ixi0];
+          y4 = flux1[ie + ne_loc * (icose0 - 1) +
+                     ne_loc * ncose * ilogden0 + 
+                     ne_loc * ncose * nlogden * (ixi0 - 1)];
+          y5 = flux1[ie + ne_loc * icose0 +
+                     ne_loc * ncose * (ilogden0 - 1) + 
+                     ne_loc * ncose * nlogden * (ixi0 - 1)];
+          y6 = flux1[ie + ne_loc * icose0 +
+                     ne_loc * ncose * (ilogden0 - 1) + 
+                     ne_loc * ncose * nlogden * ixi0];
+          y7 = flux1[ie + ne_loc * icose0 +
+                     ne_loc * ncose * ilogden0 + 
+                     ne_loc * ncose * nlogden * ixi0];
+          y8 = flux1[ie + ne_loc * icose0 +
+                     ne_loc * ncose * ilogden0 + 
+                     ne_loc * ncose * nlogden * (ixi0 - 1)];
+//          factor2 = exp( energy1[ie] / Ecut0 * (1.-1./gfactor) );
+          fluxe[ie] = (vtmp1 * (utmp1 * (ttmp1 * y1 + ttmp * y2) +
+                                utmp * (ttmp * y3 + ttmp1 * y4)) +
+                       vtmp * (utmp1 * (ttmp1 * y5 + ttmp * y6) +
+                               utmp * (ttmp * y7 + ttmp1 * y8))) *
+                       factor * factor1;
+//                       * factor2;
         }
       } break;
       default: {
@@ -2301,7 +2679,7 @@ if ((ir0 == 0) || (ir0 >= nrad)) {
     }
   }else for (ie = 0; ie < ne_loc; ie++) fluxe[ie] = 0;
   for (ie = 0; ie < ne_loc; ie++){
-    if (nH0 > 0. && qn != 0.) fluxe[ie] *= pow(r, qn);
+    if (rix != 11 && nH0 > 0. && qn != 0.) fluxe[ie] *= pow(r, qn);
     far_loc[ie] = fluxe[ie];
   }
 }

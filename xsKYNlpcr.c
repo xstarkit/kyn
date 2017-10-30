@@ -30,10 +30,10 @@
  * disc and from the disc to the observer). This model calls subroutine ide() 
  * for integrating local emission over the disc and uses the FITS file 
  * 'KBHtablesNN.fits' defining the transfer functions needed for integration 
- * over disc as well as the FITS file 'KBHlamp_q.fits' defining the transfer 
+ * over disc as well as the FITS file 'KBHlamp80.fits' defining the transfer 
  * functions between the source and the disc. For details on ide() and the FITS 
  * file 'KBHtablesNN.fits' see the subroutine ide() in xside.c, for details on 
- * the FITS file 'KBHlamp_q.fits' see the subroutine KYNrlpli() in xsKYNrlpli.c.
+ * the FITS file 'KBHlamp80.fits' see the subroutine KYNrlpli() in xsKYNrlpli.c.
  * The reflection is modelled by Monte Carlo simulations of Compton
  * scattering with the code NOAR which is stored in the 'reflspectra.fits' file 
  * (see the description of this file below).
@@ -101,15 +101,26 @@
  * par24 ... Stokes - what should be stored in photar() array, i.e. as output
  *                    = 0 - array of photon number density flux per bin
  *                         (array of Stokes parameter I devided by energy)
- *                    = 1 - array of Stokes parameter Q devided by energy
- *                    = 2 - array of Stokes parameter U devided by energy
- *                    = 3 - array of Stokes parameter V devided by energy
- *                    = 4 - array of degree of polarization
- *                    = 5 - array of polarization angle psi=0.5*atan(U/Q)
- *                    = 6 - array of "Stokes" angle
+ *                          with the polarisation computations switched off
+ *                    = 1 - array of photon number density flux per bin
+ *                         (array of Stokes parameter I devided by energy),
+ *                          with the polarisation computations switched on
+ *                    = 2 - array of Stokes parameter Q devided by energy
+ *                    = 3 - array of Stokes parameter U devided by energy
+ *                    = 4 - array of Stokes parameter V devided by energy
+ *                    = 5 - array of degree of polarization
+ *                    = 6 - array of polarization angle psi=0.5*atan(U/Q)
+ *                    = 7 - array of "Stokes" angle
  *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
- * par25 ... nthreads - number of threads to be used for computations
- * par26 ... norm     - has to be set to unity!
+ * par25 ... poldeg   - intrinsic polarisation degree of primary radiation,
+ *                      used only if par24 > 0
+ * par26 ... polangle - intrinsic polarisation angle of primary radiation
+ *                      measured counter-clockwise from the axis in degrees when
+ *                      looking towards the incoming photon, zero for 
+ *                      polarisation parallel with the axis, 
+ *                      used only if par24 > 0
+ * par27 ... nthreads - number of threads to be used for computations
+ * par28 ... norm     - has to be set to unity!
  *
  * NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
@@ -166,7 +177,7 @@
 #ifdef OUTSIDE_XSPEC
 
 #define IFL    1
-#define NPARAM 25
+#define NPARAM 27
 #define NE     200
 #define E_MIN  1.2
 #define E_MAX  100.
@@ -193,7 +204,7 @@ param[ 9] = 2.;         // PhoIndex
 param[10] = 0.001;      // L/Ledd
 param[11] = 1.;         // Np:Nr
 param[12] = 3.;         // line
-param[13] = 300.;       // E_cut
+param[13] = 200.;       // E_cut
 param[14] = -6.;        // alpha
 param[15] = 0.;         // beta
 param[16] = 0.;         // rcloud
@@ -204,7 +215,9 @@ param[20] = 1.;         // division
 param[21] = 360.;       // nphi
 param[22] = 1.;         // smooth
 param[23] = 0.;         // Stokes
-param[24] = 4.;         // nthreads
+param[24] = 0.02;       // poldeg
+param[25] = 0.;         // polangle
+param[26] = 4.;         // nthreads
 
 for(ie = 0; ie <= NE; ie++) {
 //  ear[ie] = E_MIN + ie * (E_MAX-E_MIN) / NE;
@@ -219,7 +232,7 @@ return(0);
 /*******************************************************************************
 *******************************************************************************/
 
-#define LAMP "KBHlamp_q.fits"
+#define LAMP "KBHlamp80.fits"
 #define REFSPECTRA "reflspectra.fits"
 #define NLINES 6
 #define PI 3.14159265358979
@@ -236,8 +249,8 @@ return(0);
    subroutines */
 static float  *cosi, *cose, *azimuth, *radius;
 static double *energy, *flux_c, *flux_l;
-static double *gfac, *cosin, *phiph, *transf_d;
-static double h, h_rh, am2, r_plus, gam;
+static double *gfac, *cosin, *phiph, *transf_d, *chid;
+static double h, h_rh, am2, r_plus, gam, poldeg, chi;
 static int    polar, line;
 static long   ncosi, ncose, nazim, nrad;
 
@@ -268,10 +281,11 @@ static char   kydir[255]="";
 static char   pname[128]="KYDIR", pkyLxLamp[128] = "KYLxLamp";
 static char   pkyRefl[128] = "KYRefl";
 static long   nrh, ngamma, nh, nincl, nener;
-static float  *r_horizon, *gamma, *height, *incl, *dWadWo, *dWadSd, *q, *pr, 
-              *flux0;
-static double transf_o;
-static double h_rh_old = -1., gam_old = -1., am_old = -1., thetaO_old = -1.;
+static float  *r_horizon, *gamma, *height, *incl, *q2_a, *dWadWo, *dWadSd, *q, 
+              *pr, *flux0;
+static double transf_o, beta_a, chio;
+static double h_rh_old = -1., gam_old = -1., am_old = -1., thetaO_old = -1.,
+              polar_old = -1.;
 static int    first = 1, first_h = 1, line_old = -99;
 static const int npoints[6] = {3, 3, 3, 3, 10, 2};
 static const int fpoint[6] = {13, 69, 116, 157, 302, 318};
@@ -284,8 +298,9 @@ double far[ne], qar[ne], uar[ne], var[ne], pd[ne], pa[ne], pa2[ne];
 float  *energy0;
 double ttmp, ttmp1, utmp, utmp1, vtmp, vtmp1, y1, y2, y3, y4, y5, y6, y7, y8;
 double pr_final, q_final, pom, pom1, pom2, pom3;
-double r, r2, delta, ULt, rms, tmp1, Ut, U_phi, U_r, Ur, UrU_r, Lms, Ems;
-double am, thetaO, Ec, f0, f1, ratio;
+double r, r2, delta, ULt, rms, tmp1, Ut, U_phi, U_r, Ur, UrU_r, Lms, Ems, Uphi, 
+       pt, ptheta, pphi, Fr, Fphi;
+double am, thetaO, cosmuO, Ec, f0, f1, ratio, alpha2, beta, rcloud, rcloud2;
 double mass, Np, Anorm, Dnorm, g_L, Lx, flux_prim, flux_refl, refl_ratio;
 double zzshift;
 double pamin, pamax, pa2min, pa2max, NpNr;
@@ -327,6 +342,7 @@ r_plus = 1. + sqrt(1. - am2);
 // thetaO - observer inclination
 ide_param[1] = param[1];
 thetaO = ide_param[1];
+cosmuO = cos(thetaO/180.*PI);
 // rin - inner edge of non-zero disc emissivity
 ide_param[2] = param[2];
 // ms - whether to integrate from rin or rms
@@ -387,24 +403,30 @@ ide_param[14] = 1.;
 // (ide_param[15], ide_param[16])
 // polar - whether we need value of change in polarization angle (0-no,1-yes)
 stokes = (int) param[23];
-if ((stokes < 0.) || (stokes > 6)) {
-  xs_write("kynlpcr: Stokes has to be 0-6", 5);
+if ((stokes < 0.) || (stokes > 7)) {
+  xs_write("kynlpcr: Stokes has to be 0-7", 5);
   for(ie = 0; ie < ne; ie++) photar[ie] = 0.;
   return;  
 }
 polar = 0;
-if (stokes > 0) polar = 1;
+if (stokes > 0){
+  polar = 1;
+  poldeg = param[24];
+  chi = param[25]/180.*PI;
+}
 ide_param[17] = polar;
 // delay_r and delay_phi are not used
 // (ide_param[18], ide_param[19])
 // number of threads for multithread computations
-ide_param[20] = param[24];
+ide_param[20] = param[26];
 // alpha - position of the cloud in alpha impact parameter (in GM/c^2)
 ide_param[21] = param[14];
+alpha2 = param[14]*param[14];
 // beta - position of the cloud in beta impact parameter (in GM/c^2)
-ide_param[22] = param[15];
+beta = ide_param[22] = param[15];
 // rcloud - radius of the cloud (in GM/c^2)
-ide_param[23] = param[16];
+rcloud = ide_param[23] = param[16];
+rcloud2 = rcloud*rcloud;
 //whether the flux defined in emissivity subroutine is local one (0) or the 
 //observed one (1)
 ide_param[24] = 0.;
@@ -422,7 +444,7 @@ if (first_h && (h_rh >= 0.)) {
   else if (kydir[strlen(kydir) - 1] == '/') sprintf(tables_file, "%s%s",
                                                     kydir, LAMP);
   else sprintf(tables_file, "%s/%s", kydir, LAMP);
-// Let's read the 'KBHlamp_q' fits file
+// Let's read the 'KBHlamp80' fits file
 // The status parameter must always be initialized.
   status = 0;
   ffopen(&fptr, tables_file, READONLY, &status);
@@ -519,8 +541,13 @@ if (first_h && (h_rh >= 0.)) {
 //******************************************************************************
 //  for ( i=0; i<nrad; i++)fprintf(stdout,"%f\n",radius[i]);
 //******************************************************************************   
-// Let's read the tables for dWadWo, q, p^r and dWadSd
+// Let's read the tables for q2_a, dWadWo, q, p^r and dWadSd
 // allocate memory for the arrays
+  if ((q2_a = (float *) malloc(nincl * nh * nrh * sizeof(float))) == NULL) {
+    xs_write("kynlpcr: Failed to allocate memory for tmp arrays.", 5);
+    for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+    return;
+  }
   if ((dWadWo = (float *) malloc(nincl * nh * nrh * sizeof(float))) == NULL) {
     xs_write("kynlpcr: Failed to allocate memory for tmp arrays.", 5);
     for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
@@ -552,20 +579,23 @@ if (first_h && (h_rh >= 0.)) {
     nelements2 = nrow * nrad;
     for (irow = 0; irow < nh; irow += nrow) {
 //    the last block to read may be smaller:
-      if ((nrad - irow) < nrow) {
-        nelements1 = (nrad - irow) * nincl;
-        nelements2 = (nrad - irow) * nrad;
+      if ((nh - irow) < nrow) {
+        nelements1 = (nh - irow) * nincl;
+        nelements2 = (nh - irow) * nrad;
       }
       ffgcv(fptr, TFLOAT, 1, irow + 1, 1, nelements1, &float_nulval, 
+            &q2_a[irow * nincl + nh * nincl * ihorizon],
+            &anynul, &status);
+      ffgcv(fptr, TFLOAT, 2, irow + 1, 1, nelements1, &float_nulval, 
             &dWadWo[irow * nincl + nh * nincl * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 2, irow + 1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 4, irow + 1, 1, nelements2, &float_nulval, 
             &q[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 3, irow + 1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 5, irow + 1, 1, nelements2, &float_nulval, 
             &pr[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 4, irow + 1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 6, irow + 1, 1, nelements2, &float_nulval, 
             &dWadSd[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
     }
@@ -576,13 +606,13 @@ if (first_h && (h_rh >= 0.)) {
   irh=0;
   ih=30;
   for ( i=0; i<nincl; i++ ) fprintf(stdout,"%d\t%f\t%f\n",i,incl[i],
-    dWadWo[i+nincl*ih+nincl*nh*irh]);
+    q2_a[i+nincl*ih+nincl*nh*irh], dWadWo[i+nincl*ih+nincl*nh*irh]);
   for ( i=0; i<nrad; i++) fprintf(stdout,"%d\t%f\t%f\t%f\t%f\n",i,radius[i],
     q[i+nrad*ih+nrad*nh*irh],pr[i+nrad*ih+nrad*nh*irh],
     dWadSd[i+nrad*ih+nrad*nh*irh]);
 *******************************************************************************/
-// Firstly we have to free allocated memory for the arrays gfac,
-// cosin, phiph, transf_d
+// Firstly we have to allocate memory for the arrays gfac,
+// cosin, phiph, transf_d, chid
   if ((gfac = (double *) malloc(nrad * sizeof(double))) == NULL) {
     xs_write("kynlpcr: Failed to allocate memory for tmp arrays.", 5);
     for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
@@ -599,6 +629,11 @@ if (first_h && (h_rh >= 0.)) {
     return;
   }
   if ((transf_d = (double *) malloc(nrad * sizeof(double))) == NULL) {
+    xs_write("kynlpcr: Failed to allocate memory for tmp arrays.", 5);
+    for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+    return;    
+  }
+  if ((chid = (double *) malloc(nrad * sizeof(double))) == NULL) {
     xs_write("kynlpcr: Failed to allocate memory for tmp arrays.", 5);
     for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
     return;    
@@ -623,8 +658,8 @@ if (h >= 0.) {
   }
 }
 // Let's interpolate the tables to desired spin and height
-if (((am != am_old) || (h_rh != h_rh_old) || (thetaO != thetaO_old))
-   && (h_rh >= 0.)) {
+if (((am != am_old) || (h_rh != h_rh_old) || (thetaO != thetaO_old) ||
+     ((polar != polar_old) && polar)) && (h_rh >= 0.)) {
 // given am->r_plus, find the corresponding index in r_horizon[]:
   imin = 0;
   imax = nrh;
@@ -664,6 +699,21 @@ if (((am != am_old) || (h_rh != h_rh_old) || (thetaO != thetaO_old))
 //if ((imax == nincl) && (thetaO > incl[nincl - 1])) ith0 = nincl;
   vtmp = (thetaO - incl[ith0 - 1]) / (incl[ith0] - incl[ith0 - 1]);
   vtmp1 = 1. - vtmp;
+// impact parameter beta_a from the axis to the observer
+  y1 = q2_a[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * (irh0 - 1)];
+  y2 = q2_a[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * irh0];
+  y3 = q2_a[ith0 - 1 + nincl * ih0 + nincl * nh * irh0];
+  y4 = q2_a[ith0 - 1 + nincl * ih0 + nincl * nh * (irh0 - 1)];
+  y5 = q2_a[ith0 + nincl * (ih0 - 1) + nincl * nh * (irh0 - 1)];
+  y6 = q2_a[ith0 + nincl * (ih0 - 1) + nincl * nh * irh0];
+  y7 = q2_a[ith0 + nincl * ih0 + nincl * nh * irh0];
+  y8 = q2_a[ith0 + nincl * ih0 + nincl * nh * (irh0 - 1)];
+  beta_a = (vtmp1 * (utmp1 * (ttmp1 * y1 + ttmp * y2) + utmp *
+             (ttmp * y3 + ttmp1 * y4)) + vtmp * (utmp1 *
+             (ttmp1 * y5 + ttmp * y6) + utmp * (ttmp * y7 + ttmp1 * y8)));
+  beta_a += cosmuO*cosmuO*am2;
+  if(beta_a <= 0.)beta_a = 0.;
+  beta_a = sqrt(beta_a);
 // transfer function from the axis to the observer
   y1 = dWadWo[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * (irh0 - 1)];
   y2 = dWadWo[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * irh0];
@@ -676,7 +726,12 @@ if (((am != am_old) || (h_rh != h_rh_old) || (thetaO != thetaO_old))
   transf_o = (vtmp1 * (utmp1 * (ttmp1 * y1 + ttmp * y2) + utmp *
              (ttmp * y3 + ttmp1 * y4)) + vtmp * (utmp1 *
              (ttmp1 * y5 + ttmp * y6) + utmp * (ttmp * y7 + ttmp1 * y8)));
-  if ((am != am_old) || (h_rh != h_rh_old)) {
+//change of polarisation angle between the axis and the observer
+  if(polar){
+    chio = atan2( am * ( beta_a - h * sin(thetaO/180.*PI) ),
+                  am2 * sin(thetaO/180.*PI) + beta_a * h );
+  }
+  if ((am != am_old) || (h_rh != h_rh_old) || ((polar != polar_old) && polar) ) {
     for (i = 0; i < nrad; i++) {
 // q from the axis to the disc
       y1 = q[i + nrad * (ih0 - 1) + nrad * nh * (irh0 - 1)];
@@ -731,13 +786,27 @@ if (((am != am_old) || (h_rh != h_rh_old) || (thetaO != thetaO_old))
       y4 = dWadSd[i + nrad * ih0 + nrad * nh * (irh0 - 1)];
       transf_d[i] = utmp1 * (ttmp1 * y1 + ttmp * y2) + 
                     utmp * (ttmp * y3 + ttmp1 * y4);
+// chid from the axis to the disc
+      if(polar){
+        Uphi = (r-2.) * ( r * U_phi + 2. * am * Ut ) / ( r2 * delta - 4. * am2 );
+        pt = ( ( r2 + am2 ) * r + 2. * am2 ) / r / delta;
+        ptheta = q_final / r2;
+        pphi = 2. * am / r / delta;
+        Fr = am2 * pr_final + ( r2 + am2 ) * ptheta * h;
+        Fphi = -am * ( r2 + am2 ) * ptheta + am * pr_final * h;
+        chid[i] = atan2( r * sqrt(delta) / tmp1 * Fr * ( Ut * pphi - Uphi * pt )
+                         * delta * ptheta + Fphi * ( Ur * pt - Ut * pr_final ),
+                         Fr * cosin[i] * r2 * ( pr_final / tmp1 - Ur ) * ptheta
+                         - Fr * ( r * ( cosin[i] / tmp1 * r * ptheta - 1. ) ) * 
+                         pr_final - Fphi * cosin[i] * U_phi );
+      }
     }
   }
 //******************************************************************************
 //    fprintf(stdout,"%f %f\n", thetaO, transf_o);
 //    for(i = 0; i < nrad; i++) 
-//      fprintf(stdout,"%d %f %f %f %f %f\n", i, radius[i], gfac[i], cosin[i], 
-//              phiph[i], transf_d[i]);
+//      fprintf(stdout,"%d %f %f %f %f %f %f\n", i, radius[i], gfac[i], cosin[i], 
+//              phiph[i], transf_d[i], chid[i]);
 //******************************************************************************
 }
 /******************************************************************************/
@@ -1104,6 +1173,7 @@ thetaO_old = thetaO;
 h_rh_old = h_rh;
 gam_old = gam;
 line_old = line;
+polar_old = polar;
 
 /******************************************************************************/
 #ifdef OUTSIDE_XSPEC
@@ -1134,6 +1204,8 @@ fprintf(fw, "nphi        %12d\n", (int) param[21]);
 fprintf(fw, "smooth      %12d\n", (int) param[22]);
 fprintf(fw, "Stokes      %12d\n", (int) param[23]);
 fprintf(fw, "polar       %12d\n", polar);
+fprintf(fw, "Poldeg      %12.6f\n", param[24]);
+fprintf(fw, "Polangle    %12.6f\n", param[25]);
 fprintf(fw, "r_horizon   %12.6f\n", r_plus);
 fprintf(fw, "r_ms        %12.6f\n", rms);
 fprintf(fw, "edivision   %12d\n", (int) ide_param[14]);
@@ -1187,7 +1259,8 @@ for(ie = 0; ie < ne; ie++){
 }
 // Let's add primary flux to the solution
 refl_ratio=-1.;
-if (NpNr != 0.) {  
+if (NpNr != 0 && ( (rcloud >= 0. && rcloud2 < ( (beta_a-beta)*(beta_a-beta) + alpha2 )) || 
+                   (rcloud < 0. && rcloud2 >= ( (beta_a-beta)*(beta_a-beta) + alpha2 )) ) ) {
 // let's compute the cut-off powerlaw with the XSPEC routine cutoffPowerLaw
   for(ie = 0; ie <= ne; ie++) ear1[ie] = (double) ear[ie];
   param1[0] = (double) gam;
@@ -1200,7 +1273,11 @@ if (NpNr != 0.) {
       flux_refl += far[ie];
       flux_prim += Anorm * photar1[ie];
       far[ie] += Anorm * photar1[ie];
-    }    
+      if(polar){
+        qar[ie] += Anorm * photar1[ie] * poldeg * cos( 2. * ( chi + chio ) );
+        uar[ie] += Anorm * photar1[ie] * poldeg * sin( 2. * ( chi + chio ) );
+      }
+    }
   refl_ratio = flux_refl / flux_prim;
 }
 sprintf(kyRefl, "%e", refl_ratio);
@@ -1239,17 +1316,18 @@ else {
     if ((pa2max + pa2min) > 180.) pa2[ie] -= 180.;
     if ((pa2max + pa2min) < -180.) pa2[ie] += 180.;
     fprintf(fw,
-      "%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\n", 
+      "%E\t%E\t%E\t%E\t%E\t%E\t%E\t%E\n", 
       0.5 * (ear[ie] + ear[ie+1]), far[ie] / (ear[ie+1] - ear[ie]), 
       qar[ie] / (ear[ie+1] - ear[ie]), uar[ie] / (ear[ie+1] - ear[ie]), 
       var[ie] / (ear[ie+1] - ear[ie]), pd[ie], pa[ie], pa2[ie]);
 //interface with XSPEC..........................................................
-    if (stokes == 1) photar[ie] = qar[ie];
-    if (stokes == 2) photar[ie] = uar[ie];
-    if (stokes == 3) photar[ie] = var[ie];
-    if (stokes == 4) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 5) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 6) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 1) photar[ie] = far[ie];
+    if (stokes == 2) photar[ie] = qar[ie];
+    if (stokes == 3) photar[ie] = uar[ie];
+    if (stokes == 4) photar[ie] = var[ie];
+    if (stokes == 5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
   }
   fclose(fw);
 }
@@ -1258,7 +1336,8 @@ else {
 #ifdef OUTSIDE_XSPEC
 // final spectrum output -- write ear() and photar() into file:
 fw = fopen("kynlpcr_photar.dat", "w");
-if( NpNr != 0. )
+if( NpNr != 0. && ( (rcloud >= 0. && rcloud2 < ( (beta_a-beta)*(beta_a-beta) + alpha2 )) || 
+                   (rcloud < 0. && rcloud2 >= ( (beta_a-beta)*(beta_a-beta) + alpha2 )) ) )
   for (ie = 0; ie < ne; ie++) fprintf(fw, "%14.6f\t%E\t%E\n", 
     0.5*(ear[ie]+ear[ie+1]), 
     (photar[ie]-Anorm * photar1[ie]) / (ear[ie+1] - ear[ie]),
@@ -1289,12 +1368,13 @@ void emis_KYNlpcr(double** ear_loc, const int ne_loc, const int nt,
 // disc surface in polar coords r, phi;
 // cosine of local emission angle --> cosmu
 
-double azim, rq, factor, gfactor, cosmu0, phiphoton0, lensing, f_c, f_l;
+double azim, rq, factor, gfactor, cosmu0, chi0, phiphoton0, lensing, f_c, f_l;
 double utmp, utmp1, ttmp, ttmp1, wtmp, wtmp1, vtmp, vtmp1;
 double y1, y2, y3, y4, y5, y6, y7, y8;
-double m0, m02, m, m2, fil, fir, fiu, poldeg, chi2;
+double m0, m02, m, m2, fil1, fir1, fiu1, fil2, fir2, fiu2, fil3, fir3, fiu3;
+double Smatrix_loc[9];
 int    iazim0, icosi0, icose0, imin, imax, ir0;
-int    i, ie;
+int    i, j, ie;
 
 *ear_loc = energy;
 //given cosmu, find corresponding indices in cose:
@@ -1331,6 +1411,16 @@ if (h_rh >= 0) {
     gfactor = ttmp * gfac[ir0] + ttmp1 * gfac[ir0-1];
 // Let's interpolate cosmu0 between two radii
     cosmu0 = ttmp * cosin[ir0] + ttmp1 * cosin[ir0 - 1];
+// Let's interpolate chid between two radii
+    y1 = chid[ir0 - 1];
+    y2 = chid[ir0];
+    if (fabs(y2 - y1) > PI) {
+      if (y1 < 0.) y1+=PI2;
+      if (y2 < 0.) y2+=PI2;
+    }
+    chi0 = (ttmp1 * y1 + ttmp * y2);
+    if (chi0 > PI) chi0 -= PI2;
+    if (chi0 < -PI) chi0 += PI2;
 // Let's interpolate photon0 between two radii
     y1 = phiph[ir0 - 1];
     y2 = phiph[ir0];
@@ -1466,25 +1556,60 @@ if (h_rh >= 0) {
                                          utmp * (vtmp * y7 + vtmp1 * y8)));
       }
       else f_l = 0.;
-      far_loc[ie] = f_c + f_l;
       if (polar) {
         m0 = cosmu0;
         m02 = cosmu0 * cosmu0;
         m = cosmu;
         m2 = cosmu * cosmu;
 // full Chandrasekhar's formulae
-        fil = (m2 * (1. + m02) + 2. * (1. - m2) * (1. - m02) - 
-              4. * m * m0 * sqrt((1. - m2) * (1. - m02)) * cos(azim) - 
-              m2 * (1. - m02) * cos(2. * azim));
-        fir = (1. + m02 + (1. - m02) * cos(2. * azim));
-        fiu = (-4. * m0 * sqrt((1. - m2) * (1. - m02)) * sin(azim) - 
-              2. * m * (1. - m02) * sin(2. * azim));
-        poldeg = sqrt((fil - fir) * (fil - fir) + fiu * fiu) / (fil + fir);
-        chi2 = atan2(fiu, fil - fir);
-        qar_loc[ie] = poldeg * f_c * cos(chi2);
-        uar_loc[ie] = poldeg * f_c * sin(chi2);
-        var_loc[ie] = 0.;
-      }
+//      UNPOLARISED, i.e. 
+//      (Il, Ir, U) = 0.5 * (1, 1, 0) / (Il +Ir)
+         fil1 = 0.5 * ( m2 * ( 1. + m02 ) + 2. * ( 1. - m2 ) * ( 1. - m02 ) 
+                - 4. * m * m0 * sqrt( ( 1. - m2 ) * ( 1. - m02 ) ) * cos(azim)
+                - m2 * ( 1. - m02 ) * cos( 2. * azim ) );
+         fir1 = 0.5 * ( 1. + m02 + ( 1. - m02 ) * cos( 2. * azim ) );
+         fiu1 = 0.5 * ( 4. * m0 * sqrt( ( 1. - m2 ) * ( 1. - m02 ) ) * sin(azim)
+                + 2. * m * ( 1. - m02 ) * sin( 2. * azim ) );
+         Smatrix_loc[0] = 1.;
+         Smatrix_loc[1] = ( fil1 - fir1 ) / ( fil1 + fir1 );
+         Smatrix_loc[2] = fiu1 / ( fil1 + fir1 );
+//      VERTICALLY POLARISED, i.e.
+//      (Il, Ir, U) = (1, 0, 0) / (Il +Ir)
+         fil2 = m2 * m02 * ( 1. + cos( 2. * azim ) ) + 2. * ( 1. - m2 ) * ( 1. - m02 )
+                - 4. * m * m0 * sqrt( ( 1. - m2 ) * ( 1. - m02 ) ) * cos( azim );
+         fir2 = m02 * ( 1. - cos( 2. * azim ) );
+         fiu2 = 4. * m0 * sqrt( ( 1. - m2 ) * ( 1. - m02 ) ) * sin( azim );
+                - 2. * m * m02 * sin( 2. * azim );
+         Smatrix_loc[3] = ( fil2 + fir2 ) / ( fil1 + fir1 );
+         Smatrix_loc[4] = ( fil2 - fir2 ) / ( fil1 + fir1 );
+         Smatrix_loc[5] = fiu2 / ( fil1 + fir1 );
+//      45DEG POLARISED, i.e. 
+//      (Il, Ir, U) = (0.5, 0.5, 1) / (Il +Ir)
+         fil3 = fil1 + ( - 2. * m * sqrt( ( 1. - m2 ) * ( 1. - m02 ) ) * sin( azim )
+                     + m2 * m0 * sin( 2. * azim ) );
+         fir3 = fir1 - m0 * sin( 2. * azim );
+         fiu3 = fiu1 - 2. * sqrt( ( 1. - m2 ) * ( 1. - m02 ) ) * cos( azim )
+                     + 2. * m * m0 * cos( 2. * azim );
+         Smatrix_loc[6] = ( fil3 + fir3 ) / ( fil1 + fir1 );
+         Smatrix_loc[7] = ( fil3 - fir3 ) / ( fil1 + fir1 );
+         Smatrix_loc[8] = fiu3 / ( fil1 + fir1 );
+         for(i=1; i<=2; i++){
+           for(j=0; j<=2; j++){
+             Smatrix_loc[j+3*i] -= Smatrix_loc[j];
+           }
+         }
+         far_loc[ie] = f_c * ( Smatrix_loc[0] +
+                       poldeg * ( Smatrix_loc[3] * cos(2.*(chi+chi0)) +
+                                  Smatrix_loc[6] * sin(2.*(chi+chi0)) ) );
+         qar_loc[ie] = f_c * ( Smatrix_loc[1] +
+                       poldeg * ( Smatrix_loc[4] * cos(2.*(chi+chi0))+
+                                  Smatrix_loc[7] * sin(2.*(chi+chi0)) ) );
+         uar_loc[ie] = f_c * ( Smatrix_loc[2] +
+                       poldeg * ( Smatrix_loc[5] * cos(2.*(chi+chi0))+
+                                  Smatrix_loc[8] * sin(2.*(chi+chi0)) ) );
+         var_loc[ie] = 0.;
+         far_loc[ie] += f_l;
+      } else far_loc[ie] = f_c + f_l;
     }
   }
 }

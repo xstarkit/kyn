@@ -86,12 +86,16 @@
  * par24 ... Stokes - what should be stored in photar() array, i.e. as output
  *                    = 0 - array of photon number density flux per bin
  *                         (array of Stokes parameter I devided by energy)
- *                    = 1 - array of Stokes parameter Q devided by energy
- *                    = 2 - array of Stokes parameter U devided by energy
- *                    = 3 - array of Stokes parameter V devided by energy
- *                    = 4 - array of degree of polarization
- *                    = 5 - array of polarization angle psi=0.5*atan(U/Q)
- *                    = 6 - array of "Stokes" angle
+ *                          with the polarisation computations switched off
+ *                    = 1 - array of photon number density flux per bin
+ *                         (array of Stokes parameter I devided by energy),
+ *                          with the polarisation computations switched on
+ *                    = 2 - array of Stokes parameter Q devided by energy
+ *                    = 3 - array of Stokes parameter U devided by energy
+ *                    = 4 - array of Stokes parameter V devided by energy
+ *                    = 5 - array of degree of polarization
+ *                    = 6 - array of polarization angle psi=0.5*atan(U/Q)
+ *                    = 7 - array of "Stokes" angle
  *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
  * par25 ... nthreads - number of threads to be used for computations
  * par26 ... normtype - how to normalize the spectra
@@ -277,8 +281,8 @@ ide_param[14] = 0.;
 // (ide_param[15], ide_param[16])
 // polar - whether we need value of change in polarization angle (0-no, 1-yes)
 stokes = (int) param[23];
-if ((stokes < 0) || (stokes > 6)) {
-  xs_write("kynrline: Stokes has to be 0-6", 5);
+if ((stokes < 0) || (stokes > 7)) {
+  xs_write("kynrline: Stokes has to be 0-7", 5);
   for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
   return;
 }
@@ -395,17 +399,18 @@ else {
     if ((pa2max + pa2min) > 180.) pa2[ie] -= 180.;
     if ((pa2max + pa2min) < -180.) pa2[ie] += 180.;
     fprintf(fw,
-      "%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\n", 
+      "%E\t%E\t%E\t%E\t%E\t%E\t%E\t%E\n", 
       0.5 * (ear[ie] + ear[ie+1]), far[ie] / (ear[ie+1] - ear[ie]), 
       qar[ie] / (ear[ie+1] - ear[ie]), uar[ie] / (ear[ie+1] - ear[ie]), 
       var[ie] / (ear[ie+1] - ear[ie]), pd[ie], pa[ie], pa2[ie]);
 //interface with XSPEC..........................................................
-    if (stokes == 1) photar[ie] = qar[ie];
-    if (stokes == 2) photar[ie] = uar[ie];
-    if (stokes == 3) photar[ie] = var[ie];
-    if (stokes == 4) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 5) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 6) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 1) photar[ie] = far[ie];
+    if (stokes == 2) photar[ie] = qar[ie];
+    if (stokes == 3) photar[ie] = uar[ie];
+    if (stokes == 4) photar[ie] = var[ie];
+    if (stokes == 5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
   }
   fclose(fw);
 }

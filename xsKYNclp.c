@@ -26,10 +26,10 @@
  * accretion disc. All relativistic effects are taken into account. This model 
  * calls subroutine ide() for integrating local emission over the disc and uses 
  * the FITS file 'KBHtablesNN.fits' defining the transfer functions needed for 
- * integration over disc as well as the FITS file 'KBHlamp_q.fits' defining the 
+ * integration over disc as well as the FITS file 'KBHlamp80.fits' defining the 
  * transfer functions between the source and the disc. For details on ide() and 
  * the FITS file 'KBHtablesNN.fits' see the subroutine ide() in xside.c, for 
- * details on the FITS file 'KBHlamp_q.fits' see the subroutine KYNrlpli() in 
+ * details on the FITS file 'KBHlamp80.fits' see the subroutine KYNrlpli() in 
  * xsKYNrline.c. The emission directionality (limb brightening/darkening law) is 
  * modelled by Monte Carlo code NOAR and is stored in the FITS file 
  * 'fluorescent_line.fits', see the subroutine KYNrlpli() in xsKYNrlpli.c for
@@ -101,12 +101,16 @@
  * par20 ... Stokes - what should be stored in photar() array, i.e. as output
  *                    = 0 - array of photon number density flux per bin
  *                         (array of Stokes parameter I devided by energy)
- *                    = 1 - array of Stokes parameter Q devided by energy
- *                    = 2 - array of Stokes parameter U devided by energy
- *                    = 3 - array of Stokes parameter V devided by energy
- *                    = 4 - array of degree of polarization
- *                    = 5 - array of polarization angle psi=0.5*atan(U/Q)
- *                    = 6 - array of "Stokes" angle
+ *                          with the polarisation computations switched off
+ *                    = 1 - array of photon number density flux per bin
+ *                         (array of Stokes parameter I devided by energy),
+ *                          with the polarisation computations switched on
+ *                    = 2 - array of Stokes parameter Q devided by energy
+ *                    = 3 - array of Stokes parameter U devided by energy
+ *                    = 4 - array of Stokes parameter V devided by energy
+ *                    = 5 - array of degree of polarization
+ *                    = 6 - array of polarization angle psi=0.5*atan(U/Q)
+ *                    = 7 - array of "Stokes" angle
  *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
  * par21 ... nthreads - number of threads to be used for computations
  * par22 ... normtype - how to normalize the spectra
@@ -190,7 +194,7 @@ return(0);
 /*******************************************************************************
 *******************************************************************************/
 
-#define LAMP "KBHlamp_q.fits"
+#define LAMP "KBHlamp80.fits"
 #define FLUORESCENT_LINE "fluorescent_line.fits"
 #define PI 3.14159265359
 
@@ -380,8 +384,8 @@ ide_param[14] = 1.;
 // (ide_param[15], ide_param[16])
 // polar - whether we need value of change in polarization angle (0-no,1-yes)
 stokes = (int) param[19];
-if ((stokes < 0) || (stokes > 6)) {
-  xs_write("kynclp: Stokes has to be 0-6", 5);
+if ((stokes < 0) || (stokes > 7)) {
+  xs_write("kynclp: Stokes has to be 0-7", 5);
   for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
   return;
 }
@@ -415,7 +419,7 @@ if (first_h && (h_rh >= 0.)) {
   else if (kydir[strlen(kydir) - 1] == '/') sprintf(tables_file, "%s%s",
                                                     kydir,LAMP);
   else sprintf(tables_file, "%s/%s", kydir, LAMP);
-// Let's read the 'KBHlamp_q' fits file
+// Let's read the 'KBHlamp80' fits file
 // The status parameter must always be initialized.
   status = 0;
   ffopen(&fptr, tables_file, READONLY, &status);
@@ -545,20 +549,20 @@ if (first_h && (h_rh >= 0.)) {
     nelements2 = nrow * nrad;
     for (irow = 0; irow < nh; irow += nrow) {
 //    the last block to read may be smaller:
-      if ((nrad - irow) < nrow) {
-        nelements1 = (nrad - irow) * nincl;
-        nelements2 = (nrad - irow) * nrad;
+      if ((nh - irow) < nrow) {
+        nelements1 = (nh - irow) * nincl;
+        nelements2 = (nh - irow) * nrad;
       }
-      ffgcv(fptr, TFLOAT, 1, irow+1, 1, nelements1, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 2, irow+1, 1, nelements1, &float_nulval, 
             &dWadWo[irow * nincl + nh * nincl * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 2, irow+1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 4, irow+1, 1, nelements2, &float_nulval, 
             &q[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 3, irow+1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 5, irow+1, 1, nelements2, &float_nulval, 
             &pr[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 4, irow+1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 6, irow+1, 1, nelements2, &float_nulval, 
             &dWadSd[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
     }
@@ -977,17 +981,18 @@ else {
     if ((pa2max + pa2min) > 180.) pa2[ie] -= 180.;
     if ((pa2max + pa2min) < -180.) pa2[ie] += 180.;
     fprintf(fw,
-      "%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\n", 
+      "%E\t%E\t%E\t%E\t%E\t%E\t%E\t%E\n", 
       0.5 * (ear[ie] + ear[ie+1]), far[ie] / (ear[ie+1] - ear[ie]), 
       qar[ie] / (ear[ie+1] - ear[ie]), uar[ie] / (ear[ie+1] - ear[ie]), 
       var[ie] / (ear[ie+1] - ear[ie]), pd[ie], pa[ie], pa2[ie]);
 //interface with XSPEC..........................................................
-    if (stokes == 1) photar[ie] = qar[ie];
-    if (stokes == 2) photar[ie] = uar[ie];
-    if (stokes == 3) photar[ie] = var[ie];
-    if (stokes == 4) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 5) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 6) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 1) photar[ie] = far[ie];
+    if (stokes == 2) photar[ie] = qar[ie];
+    if (stokes == 3) photar[ie] = uar[ie];
+    if (stokes == 4) photar[ie] = var[ie];
+    if (stokes == 5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
   }
   fclose(fw);
 }

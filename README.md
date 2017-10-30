@@ -33,6 +33,7 @@ with the following assumptions and features:
   * disc may be non-axisymmetric - only part of the disc may be emitting 
     (sections in radius and azimuth),
   * obscuration by circular cloud is possible,
+  * polarisation properties are computed in some of the models,
   * full relativistic ray-tracing code in vacuum was used for photon paths to 
     compute the tables of transfer functions used in the models,
   * the pre-calculated tables contain impact parameters - &alpha; and &beta; 
@@ -61,7 +62,8 @@ with the following assumptions and features:
 
       * [KYNlpcr](#kynlpcr) - relativistic reflection model in lamp-post 
                                  geometry for neutral disc (local emissivity 
-                                 computed by NOAR),
+                                 computed by NOAR), polarisation properties are
+                                 provided
       * [KYNrefionx](#kynrefionx) - relativistic reflection model in 
                                        lamp-post geometry for ionised disc 
                                        (local emissivity is given by REFLIONX),
@@ -75,13 +77,15 @@ with the following assumptions and features:
   - *Thermal radiation models:*
 
       * [KYNphebb](#kynphebb) - relativistic thermal radiation with radial 
-                                   power-law temperature profile,
+                                   power-law temperature profile, polarisation
+                                   properties are provided
       * [KYNbb](#kynbb) - relativistic thermal radiation with Novikov-Thorne 
                               temperature profile (without self-irradiation and 
-                              with colour correction factor).
+                              with colour correction factor), polarisation 
+                              properties are provided.
 
 The KYN package is based upon its first version presented in 
-Dovciak M., Karas V. & Yaqoob T. 2004, ApJS, 153, 205-221.
+Dovciak M., Karas V. & Yaqoob T. (2004) ApJS, 153, 205-221.
 
 Installation
 ============
@@ -91,8 +95,8 @@ Required files
 
 * Source files in the main repository directory.
 
-* KY tables: [KBHlamp_q.fits](https://owncloud.asu.cas.cz/index.php/s/upMLegCGecuik03) 
-  (also [here](http://www.astro.cas.cz/dovciak/pub/KY/KBHlamp_q.fits)) 
+* KY tables: [KBHlamp80.fits](https://owncloud.asu.cas.cz/index.php/s/abuFcygHKEKFiSa) 
+  (also [here](http://www.astro.cas.cz/dovciak/pub/KY/KBHlamp80.fits)) 
   and [KBHtables80.fits](https://owncloud.asu.cas.cz/index.php/s/WP8aLN168MJgcB9) 
   (also [here](http://www.astro.cas.cz/dovciak/pub/KY/KBHtables80.fits)).
 
@@ -106,6 +110,12 @@ Required files
        (also [here](http://www.astro.cas.cz/dovciak/pub/KY/fluorescent_line.fits)), 
      - [reflspectra.fits](https://owncloud.asu.cas.cz/index.php/s/svvZLBq2GogNsju) 
        (also [here](http://www.astro.cas.cz/dovciak/pub/KY/reflspectra.fits)),
+
+  * polarisation tables computed with Monte Carlo code STOKES 
+    (Goosmann & Gaskell 2007, A&A, 465, 129, http://www.stokes-program.info ):
+
+     - [goosmann.fits](https://owncloud.asu.cas.cz/index.php/s/wrlUIOwLd6fI8YU) 
+       (also [here](http://www.astro.cas.cz/dovciak/pub/KY/goosmann.fits)),
 
   * [REFLION(X)](https://heasarc.gsfc.nasa.gov/xanadu/xspec/models/reflion.html) 
     tables (Ross & Fabian 2005, MNRAS, 358, 211) - unpack gzipped files: 
@@ -122,7 +132,8 @@ Required files
        (or [here](http://www.astro.cas.cz/dovciak/pub/KY-external/reflionx.mod)),
 
   * [XILLVER](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/) tables
-    (Garcia & Kallman 2010, ApJ, 718, 695 and Garcia et al. 2013, ApJ, 768, 2): 
+    (Garcia & Kallman 2010, ApJ, 718, 695, Garcia et al. 2013, ApJ, 768, 2 and 
+     Garcia et al. 2016, MNRAS, 462, 751):
 
      - [xillver.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver.fits),
      - [xillver-a.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-a.fits),
@@ -131,7 +142,8 @@ Required files
      - [xillver-a-Ec2.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-a-Ec2.fits),
      - [xillver-a-Ec3.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-a-Ec3.fits),
      - [xillver-a-Ec4.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-a-Ec4.fits),
-     - [xillver-a-Ec5.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-a-Ec5.fits).
+     - [xillver-a-Ec5.fits](https://hea-www.cfa.harvard.edu/%7Ejavier/xillver/tables/xillver-a-Ec5.fits),
+     - [xillverD-4.fits](http://www.sternwarte.uni-erlangen.de/~dauser/research/relxill/xillverD-4.fits.gz).
 
 
 Usage in XSPEC
@@ -140,7 +152,7 @@ Usage in XSPEC
 The code is compiled inside XSPEC with the following command (assuming all the 
 source files and FITS tables are in the directory /path/to/KYN):
 
-* `initpackage kyn lmodel.dat /path/to/KYN`
+* `initpackage kyn lmodel-kyn.dat /path/to/KYN`
 
 To use the KYN models inside XSPEC, first the package needs to be loaded 
 and directory with KYN set:
@@ -238,7 +250,7 @@ photon paths to compute the tables of transfer functions used in the model. Disc
 area below ISCO may be chosen to emit radiation, in which case material there is 
 assumed to be freely falling and has the same energy and angular momentum as the 
 matter orbiting at the ISCO. The model is based on its first version presented 
-in Dovciak M., Karas V. & Yaqoob T. 2004, ApJS, 153, 205-221.
+in Dovciak M., Karas V. & Yaqoob T. (2004) ApJS, 153, 205-221.
 
 Definition of the parameters:
 
@@ -319,13 +331,15 @@ Definition of the parameters:
   * **par24 ... Stokes** 
     - definition of output
     - 0: photon number density flux per bin (Stokes parameter I devided by 
-         energy)
-    - 1: Stokes parameter Q devided by energy
-    - 2: Stokes parameter U devided by energy
-    - 3: Stokes parameter V devided by energy
-    - 4: degree of polarisation
-    - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+         energy) with the polarisation computations switched off
+    - 1: photon number density flux per bin (Stokes parameter I devided by 
+         energy) with the polarisation computations switched on
+    - 2: Stokes parameter Q devided by energy
+    - 3: Stokes parameter U devided by energy
+    - 4: Stokes parameter V devided by energy
+    - 5: degree of polarisation
+    - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par25 ... nthreads**
     - number of threads used for computations
   * **par26 ... normtype** 
@@ -365,7 +379,7 @@ photon paths to compute the tables of transfer functions used in the model. Disc
 area below ISCO may be chosen to emit radiation, in which case material there is 
 assumed to be freely falling and has the same energy and angular momentum as the 
 matter orbiting at the ISCO. The model is presented in Dovciak, M., Svoboda, J., 
-Goosmann, R. W., et al.: 2014, in Proceedings of RAGtime 14-16: Workshops on 
+Goosmann, R. W., et al. (2014) in Proceedings of RAGtime 14-16: Workshops on 
 black holes and neutron stars (Silesian University in Opava), [arXiv:1412.8627].
 
 Definition of the parameters:
@@ -428,13 +442,15 @@ Definition of the parameters:
   * **par19 ... Stokes** 
     - definition of output
     - 0: photon number density flux per bin (Stokes parameter I devided by 
-         energy)
-    - 1: Stokes parameter Q devided by energy
-    - 2: Stokes parameter U devided by energy
-    - 3: Stokes parameter V devided by energy
-    - 4: degree of polarisation
-    - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+         energy) with the polarisation computations switched off
+    - 1: photon number density flux per bin (Stokes parameter I devided by 
+         energy) with the polarisation computations switched on
+    - 2: Stokes parameter Q devided by energy
+    - 3: Stokes parameter U devided by energy
+    - 4: Stokes parameter V devided by energy
+    - 5: degree of polarisation
+    - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par20 ... nthreads**
     - number of threads used for computations
   * **par21 ... normtype** 
@@ -470,7 +486,7 @@ used for photon paths to compute the tables of transfer functions used in the
 model. Disc area below ISCO may be chosen to emit radiation, in which case 
 material there is assumed to be freely falling and has the same energy and 
 angular momentum as the matter orbiting at the ISCO. The model is based on its 
-first version presented in Dovciak M., Karas V. & Yaqoob T. 2004, ApJS, 153, 
+first version presented in Dovciak M., Karas V. & Yaqoob T. (2004) ApJS, 153, 
 205-221.
 
 Definition of the parameters:
@@ -551,13 +567,15 @@ Definition of the parameters:
   * **par23 ... Stokes** 
     - definition of output
     - 0: photon number density flux per bin (Stokes parameter I devided by 
-         energy)
-    - 1: Stokes parameter Q devided by energy
-    - 2: Stokes parameter U devided by energy
-    - 3: Stokes parameter V devided by energy
-    - 4: degree of polarisation
-    - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+         energy) with the polarisation computations switched off
+    - 1: photon number density flux per bin (Stokes parameter I devided by 
+         energy) with the polarisation computations switched on
+    - 2: Stokes parameter Q devided by energy
+    - 3: Stokes parameter U devided by energy
+    - 4: Stokes parameter V devided by energy
+    - 5: degree of polarisation
+    - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par24 ... nthreads**
     - number of threads used for computations
   * **par25 ... normtype** 
@@ -606,7 +624,7 @@ used for photon paths to compute the tables of transfer functions used in the
 model. Disc area below ISCO may be chosen to emit radiation, in which case 
 material there is assumed to be freely falling and has the same energy and 
 angular momentum as the matter orbiting at the ISCO. The model is presented in 
-Dovciak, M., Svoboda, J., Goosmann, R. W., et al.: 2014, in Proceedings of 
+Dovciak, M., Svoboda, J., Goosmann, R. W., et al. (2014) in Proceedings of 
 RAGtime 14-16: Workshops on black holes and neutron stars (Silesian University 
 in Opava), [arXiv:1412.8627].
 
@@ -673,13 +691,15 @@ Definition of the parameters:
   * **par20 ... Stokes** 
     - definition of output
     - 0: photon number density flux per bin (Stokes parameter I devided by 
-         energy)
-    - 1: Stokes parameter Q devided by energy
-    - 2: Stokes parameter U devided by energy
-    - 3: Stokes parameter V devided by energy
-    - 4: degree of polarisation
-    - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+         energy) with the polarisation computations switched off
+    - 1: photon number density flux per bin (Stokes parameter I devided by 
+         energy) with the polarisation computations switched on
+    - 2: Stokes parameter Q devided by energy
+    - 3: Stokes parameter U devided by energy
+    - 4: Stokes parameter V devided by energy
+    - 5: degree of polarisation
+    - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par21 ... nthreads**
     - number of threads used for computations
   * **par22 ... normtype** 
@@ -731,9 +751,17 @@ area below ISCO may be chosen to emit radiation, in which case material there is
 assumed to be freely falling and has the same energy and angular momentum as the 
 matter orbiting at the ISCO. The model is based on KY package of models first 
 presented in Dovciak M., Karas V. & Yaqoob T. 2004, ApJS, 153, 205-221 and 
-later in Dovciak, M., Svoboda, J., Goosmann, R. W., et al. 2014, in Proceedings 
+later in Dovciak, M., Svoboda, J., Goosmann, R. W., et al. (2014) in Proceedings 
 of RAGtime 14-16: Workshops on black holes and neutron stars (Silesian 
 University in Opava), [arXiv:1412.8627].
+
+This model includes a physical model of polarisation of continuum radiation
+by reflection from the accretion disc based on Rayleigh scattering in single 
+scattering approximation for both unpolarised and linearly polarised primary 
+radiation, see Chandrasekhar (1960) "Radiative Transfer". The fluorescent lines 
+in this model are intrinsically unpolarised. The relativistic change of 
+polarisation angle for all photon paths from the lamp to the disc, the lamp to 
+the observer as well as the disc to the observer were taken into account.
 
 Definition of the parameters:
 
@@ -832,16 +860,25 @@ Definition of the parameters:
   * **par24 ... Stokes** 
     - definition of output
     - 0: photon number density flux per bin (Stokes parameter I devided by 
-         energy)
-    - 1: Stokes parameter Q devided by energy
-    - 2: Stokes parameter U devided by energy
-    - 3: Stokes parameter V devided by energy
-    - 4: degree of polarisation
-    - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
-  * **par25 ... nthreads**
+         energy) with the polarisation computations switched off
+    - 1: photon number density flux per bin (Stokes parameter I devided by 
+         energy) with the polarisation computations switched on
+    - 2: Stokes parameter Q devided by energy
+    - 3: Stokes parameter U devided by energy
+    - 4: Stokes parameter V devided by energy
+    - 5: degree of polarisation
+    - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+  * **par25 ... poldeg**
+    - intrinsic polarisation degree of primary radiation, used only if par24 > 0
+  * **par26 ... polangle**
+    - intrinsic polarisation angle of primary radiation measured 
+      counter-clockwise from the axis in degrees when looking towards the 
+      incoming photon, zero for polarisation parallel with the axis, used only 
+      if par24 > 0
+  * **par27 ... nthreads**
     - number of threads used for computations
-  * **par26 ... norm**
+  * **par28 ... norm**
     - if the overall Doppler shift zshift = 0, then norm = 1/D^2 where D is the 
       distance to the source in Mpc; **in all other cases this parameter should 
       be frozen to 1!**
@@ -854,8 +891,6 @@ _Note:_
     observer) are added to the XSPEC internal
     switches. XSPEC xset command shows their current values.
   * Accuracy vs. speed trade off depends mainly on nrad and nphi.
-  * This model includes a physical model of polarisation based on Rayleigh 
-    scattering in single scattering approximation.
 
 
 KYNrefionx
@@ -869,7 +904,7 @@ height on the system axis. The primary source is isotropic and emits
 power-law radiation. The disc ionisation state changes with radius and depends 
 on the illumination patern as well as the radial density profile of the disc. 
 Re-processing in the ionised disc is taken from
-REFLION(X) tables, see Ross & Fabian 2005, MNRAS, 358, 211. Several limb 
+REFLION(X) tables, see Ross & Fabian (2005) MNRAS, 358, 211. Several limb 
 darkening/brightening laws for emission directionality are implemented.
 In this model only part of the disc may be set to be emitting 
 radiation (sections defined in radius and azimuth). Obscuration by circular 
@@ -879,7 +914,7 @@ area below ISCO may be chosen to emit radiation, in which case material there is
 assumed to be freely falling and has the same energy and angular momentum as the 
 matter orbiting at the ISCO. The model is based on KY package of models first 
 presented in Dovciak M., Karas V. & Yaqoob T. 2004, ApJS, 153, 205-221 and 
-later in Dovciak, M., Svoboda, J., Goosmann, R. W., et al.: 2014, in Proceedings 
+later in Dovciak, M., Svoboda, J., Goosmann, R. W., et al. (2014) in Proceedings 
 of RAGtime 14-16: Workshops on black holes and neutron stars (Silesian 
 University in Opava), [arXiv:1412.8627].
 
@@ -930,7 +965,8 @@ Definition of the parameters:
   * **par14 ... den_prof/ion_prof**
     - radial power-law density profile if par13 is positive
     - radial ionisation profile if par13 is negative
-    - the radial profiles in both cases are given by abs(par13) &times; r^(par14)
+    - the radial profiles in both cases are given by 
+      abs(par13) &times; r^(par14)
   * **par15 ... abun**
     - Fe abundance (in solar abundance)
   * **par16 ... alpha**
@@ -1021,18 +1057,19 @@ height on the system axis. The primary source is isotropic and emits
 power-law radiation. The disc ionisation state changes with radius and depends 
 on the illumination patern as well as the radial density profile of the disc. 
 Re-processing in the ionised disc is taken from
-XILLVER tables, see Garcia & Kallman 2010, ApJ, 718, 695 and Garcia et al. 2013, 
-ApJ, 768, 2. In this model only part of the disc may be set to be emitting 
+XILLVER tables, see Garcia & Kallman (2010), ApJ, 718, 695, 
+Garcia et al. (2013), ApJ, 768, 2 and Garcia et al. (2016), MNRAS, 462, 751. 
+In this model only part of the disc may be set to be emitting 
 radiation (sections defined in radius and azimuth). Obscuration by circular 
 cloud is possible. Full relativistic ray-tracing code in vacuum was used for 
 photon paths to compute the tables of transfer functions used in the model. Disc 
 area below ISCO may be chosen to emit radiation, in which case material there is 
 assumed to be freely falling and has the same energy and angular momentum as the 
 matter orbiting at the ISCO. The model is based on KY package of models first 
-presented in Dovciak M., Karas V. & Yaqoob T. 2004, ApJS, 153, 205-221 and 
-later in Dovciak, M., Svoboda, J., Goosmann, R. W., et al.: 2014, in Proceedings 
-of RAGtime 14-16: Workshops on black holes and neutron stars (Silesian 
-University in Opava), [arXiv:1412.8627].
+presented in Dovciak M., Karas V. & Yaqoob T. (2004), ApJS, 153, 205-221 and 
+later in Dovciak, M., Svoboda, J., Goosmann, R. W., et al.: (2014), 
+in Proceedings of RAGtime 14-16: Workshops on black holes and neutron stars 
+(Silesian University in Opava), [arXiv:1412.8627].
 
 Definition of the parameters:
 
@@ -1075,13 +1112,19 @@ Definition of the parameters:
       observer
     - if negative then L/L~Edd~ (par11) means the luminosity towards the disc
   * **par13 ... density/ionisation**
-    - density profile normalization in 10^15 cm^(-3) if positive
-    - ionisation profile normalisation if it is negative
+    - density profile normalization in 10^15 cm^(-3) if positive, 
+      i.e. n = par13 &times; r^(par14)
+    - ionisation profile normalisation if it is negative and  constant density 
+      xillver tables are used, i.e. &xi; = -par13 &times; r^(par14)
+    - ionisation parameter if it is negative and xillver tables dependent on 
+      density are used, i.e. &xi; = -par13
     - this parameter cannot be zero
-  * **par14 ... den_prof/ion_prof**
+  * **par14 ... den_prof/ion_prof/density**
     - radial power-law density profile if par13 is positive
-    - radial ionisation profile if par13 is negative
-    - the radial profiles in both cases are given by abs(par13) &times; r^(par14)
+    - radial ionisation profile if par13 is negative and constant density 
+      xillver tables are used
+    - density in 10^15 cm^(-3) if par13 is negative and xillver tables dependent 
+      on density are used
   * **par15 ... abun**
     - Fe abundance (in solar abundance)
   * **par16 ... E_cut**
@@ -1136,6 +1179,8 @@ Definition of the parameters:
          energy 
     - 8: xillver-a-Ec5.fits, angle dependent with free cut-off
          energy 
+    - 11: xillverD-4.fits, angle dependent with cut-off energy at 300 keV for
+          disc density 10^(15)-10^(19) cm^(-3)
   * **par23 ... ntable**
     - table of relativistic transfer functions used in the model
       (defines FITS file with tables), 0 &le; ntable &le; 99, currently the 
@@ -1192,7 +1237,7 @@ photon paths to compute the tables of transfer functions used in the model. Disc
 area below ISCO may be chosen to emit radiation, in which case material there is 
 assumed to be freely falling and has the same energy and angular momentum as the 
 matter orbiting at the ISCO. The model is based on its first version presented 
-in Dovciak M., Karas V. & Yaqoob T. 2004, ApJS, 153, 205-221. 
+in Dovciak M., Karas V. & Yaqoob T. (2004) ApJS, 153, 205-221. 
 
 Definition of the parameters:
 
@@ -1273,13 +1318,15 @@ Definition of the parameters:
   * **par26 ... Stokes** 
     - definition of output
     - 0: photon number density flux per bin (Stokes parameter I devided by 
-         energy)
-    - 1: Stokes parameter Q devided by energy
-    - 2: Stokes parameter U devided by energy
-    - 3: Stokes parameter V devided by energy
-    - 4: degree of polarisation
-    - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+         energy) with the polarisation computations switched off
+    - 1: photon number density flux per bin (Stokes parameter I devided by 
+         energy) with the polarisation computations switched on
+    - 2: Stokes parameter Q devided by energy
+    - 3: Stokes parameter U devided by energy
+    - 4: Stokes parameter V devided by energy
+    - 5: degree of polarisation
+    - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
   * **par27 ... nthreads**
     - number of threads used for computations
   * **par28 ... norm**
@@ -1308,7 +1355,24 @@ tables of transfer functions used in the model. Disc area below ISCO may be
 chosen to emit radiation, in which case material there is assumed to be freely 
 falling and has the same energy and angular momentum as the matter orbiting at 
 the ISCO. The model is based on KY package of models first 
-presented in Dovciak M., Karas V. & Yaqoob T. 2004, ApJS, 153, 205-221.
+presented in Dovciak M., Karas V. & Yaqoob T. (2004) ApJS, 153, 205-221.
+
+The polarisation in this model is computed from Chandrasekhar's formular for 
+infinite optical depth (parameter tau=11) or by the STOKES Monte Carlo code for 
+optical depths tau = 0.2, 0.5, 1.0, 2.0, 5.0, and 10.0. stored in the tables 
+'goosmann.fits' (computed by the author of the STOKES code Rene Goosmann, see 
+Goosmann & Gaskell 2007, A&A, 465, 129, http://www.stokes-program.info). 
+The tau=10 results are the same as tau=infinity. 
+The tables correspond to a model setup as follows: 
+a plane-parallel electron scattering disc is irradiated from its midplane and 
+evaluated for the Stokes parameters I and Q at 40 different viewing angles, 
+which are given by their cosine values. The values of I and Q are normalized by 
+the total number of photons sampled. A positive value of Q denotes 
+a polarization vector that is parallel with the disk's symmetry axis, a negative
+value stands for a vector being perpendicular to this axis. The U values are 
+basically zero in all cases. The intrinsic irradiation at the midplane is 
+assumed to be isotropic at every point. The electron scattering is realized by 
+Thomson scattering and therefore wavelength-independent.
 
 Definition of the parameters:
 
@@ -1327,6 +1391,8 @@ Definition of the parameters:
          edge = par3 &times; r~mso~ (the same applies for outer edge)
   * **par5  ... rout**
     - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - if outer edge is equal or larger than 1000 GM/c^2 then the emission from 
+      above this radius is added
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -1366,9 +1432,29 @@ Definition of the parameters:
     - whether to smooth the resulting spectrum 
     - 0: no smoothing
     - 1: simple smoothing
-  * **par19 ... nthreads**
+  * **par19 ... Stokes** 
+    - definition of output
+    - 0: photon number density flux per bin (Stokes parameter I devided by 
+         energy) with the polarisation computations switched off
+    - 1: photon number density flux per bin (Stokes parameter I devided by 
+         energy) with the polarisation computations switched on, different 
+         approximation for computed flux is used with non-isotropic emission 
+         directionality
+    - 2: Stokes parameter Q devided by energy
+    - 3: Stokes parameter U devided by energy
+    - 4: Stokes parameter V devided by energy
+    - 5: degree of polarisation
+    - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+  * **par20 ... tau**
+    - tau of the disc atmosphere,
+    - tables created by Monte Carlo code Stokes for 
+      tau = 0.2, 0.5, 1., 2., 5., 10.
+    - Chandrasekhar's relations for infinite optical depth for tau > 10 
+      (I in tables is actually the same already for tau=5. and Q for tau=10.)
+  * **par21 ... nthreads**
     - number of threads used for computations
-  * **par20 ... norm**
+  * **par22 ... norm**
     - equals to 1/D^2 where D is a source distance in 10kpc
 
 _Note:_
@@ -1392,7 +1478,24 @@ tables of transfer functions used in the model. Disc area below ISCO may be
 chosen to emit radiation, in which case material there is assumed to be freely 
 falling and has the same energy and angular momentum as the matter orbiting at 
 the ISCO. The model is based on KY package of models first 
-presented in Dovciak M., Karas V. & Yaqoob T. 2004, ApJS, 153, 205-221.
+presented in Dovciak M., Karas V. & Yaqoob T. (2004) ApJS, 153, 205-221.
+
+The polarisation in this model is computed from Chandrasekhar's formular for 
+infinite optical depth (parameter tau=11) or by the STOKES Monte Carlo code for 
+optical depths tau = 0.2, 0.5, 1.0, 2.0, 5.0, and 10.0. stored in the tables 
+'goosmann.fits' (computed by the author of the STOKES code Rene Goosmann, see 
+Goosmann & Gaskell 2007, A&A, 465, 129, http://www.stokes-program.info). 
+The tau=10 results are the same as tau=infinity. 
+The tables correspond to a model setup as follows: 
+a plane-parallel electron scattering disc is irradiated from its midplane and 
+evaluated for the Stokes parameters I and Q at 40 different viewing angles, 
+which are given by their cosine values. The values of I and Q are normalized by 
+the total number of photons sampled. A positive value of Q denotes 
+a polarization vector that is parallel with the disk's symmetry axis, a negative
+value stands for a vector being perpendicular to this axis. The U values are 
+basically zero in all cases. The intrinsic irradiation at the midplane is 
+assumed to be isotropic at every point. The electron scattering is realized by 
+Thomson scattering and therefore wavelength-independent.
 
 Definition of the parameters:
 
@@ -1411,6 +1514,8 @@ Definition of the parameters:
          edge = par3 &times; r~mso~ (the same applies for outer edge)
   * **par5  ... rout**
     - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - if outer edge is equal or larger than 1000 GM/c^2 then the emission from 
+      above this radius is added
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -1455,16 +1560,26 @@ Definition of the parameters:
   * **par20 ... Stokes** 
     - definition of output
     - 0: photon number density flux per bin (Stokes parameter I devided by 
-         energy)
-    - 1: Stokes parameter Q devided by energy
-    - 2: Stokes parameter U devided by energy
-    - 3: Stokes parameter V devided by energy
-    - 4: degree of polarisation
-    - 5: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 6: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
-  * **par21 ... nthreads**
+         energy) with the polarisation computations switched off
+    - 1: photon number density flux per bin (Stokes parameter I devided by 
+         energy) with the polarisation computations switched on, different 
+         approximation for computed flux is used with non-isotropic emission 
+         directionality
+    - 2: Stokes parameter Q devided by energy
+    - 3: Stokes parameter U devided by energy
+    - 4: Stokes parameter V devided by energy
+    - 5: degree of polarisation
+    - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+  * **par21 ... tau**
+    - tau of the disc atmosphere,
+    - tables created by Monte Carlo code Stokes for 
+      tau = 0.2, 0.5, 1., 2., 5., 10.
+    - Chandrasekhar's relations for infinite optical depth for tau > 10 
+      (I in tables is actually the same already for tau=5. and Q for tau=10.)
+  * **par22 ... nthreads**
     - number of threads used for computations
-  * **par22 ... norm**
+  * **par23 ... norm**
     - equals to 1/D^2 where D is a source distance in 10kpc
 
 _Note:_
@@ -1472,5 +1587,3 @@ _Note:_
     KYRMS (the marginally stable orbit) are added to the XSPEC internal
     switches. Use xset command to show their current values.
   * Accuracy vs. speed trade off depends mainly on nrad and nphi.
-  * In this model it is assumed that the local emission is completely linearly 
-    polarised in the direction perpendicular to the disc.

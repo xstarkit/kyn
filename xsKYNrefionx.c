@@ -30,10 +30,10 @@
  * disc and from the disc to the observer). This model calls subroutine ide() 
  * for integrating local emission over the disc and uses the FITS file 
  * 'KBHtablesNN.fits' defining the transfer functions needed for integration 
- * over disc as well as the FITS file 'KBHlamp_q.fits' defining the transfer 
+ * over disc as well as the FITS file 'KBHlamp80.fits' defining the transfer 
  * functions between the source and the disc. For details on ide() and the FITS 
  * file 'KBHtablesNN.fits' see the subroutine ide() in xside.c, for details on 
- * the FITS file 'KBHlamp_q.fits' see the subroutine KYNrlpli() in xsKYNrlpli.c.
+ * the FITS file 'KBHlamp80.fits' see the subroutine KYNrlpli() in xsKYNrlpli.c.
  * The reflection is taken from Ross & Fabian tables reflionx.mod.
  *
  * par1  ... a/M     - black hole angular momentum (-1 <= a/M <= 1)
@@ -195,7 +195,7 @@ return(0);
 #define LOGXI_NORM0 4.761609554
 #define PI 3.14159265359
 #define PI2 6.2831853071795865
-#define LAMP "KBHlamp_q.fits"
+#define LAMP "KBHlamp80.fits"
 #define REFLION1 "reflion.mod"
 #define REFLION2 "reflionx.mod"
 #define REFLIONX_NORM 1.e20
@@ -238,10 +238,10 @@ static char   pname[128] = "KYDIR", pkyLxLamp[128] = "KYLxLamp";
 static char   pkyxiin[128] = "KYXIin", pkyxiout[128] = "KYXIout";
 static char   pkyRefl[128] = "KYRefl";
 static long   nrh, nh, nincl, nener;
-static float  *r_horizon, *height, *incl, *dWadWo, *q, *pr, *dWadSd, *abun,
-              *gam, *emission, *energy0;
+static float  *r_horizon, *height, *incl, *q2_a, *dWadWo, *q, *pr, *dWadSd, 
+              *abun, *gam, *emission, *energy0;
 static long   ne_loc, nabun, ngam;
-static double *energy2, *flux0, transf_o;
+static double *energy2, *flux0, transf_o, beta_a;
 static double h_rh_old = -1., gam_old = -1., abun_old = -1., thetaO_old = -1.,
               am_old = -1.;
 static int    rix_old = -1, first_h = 1, first_rix = 1;
@@ -256,7 +256,8 @@ double ttmp, ttmp1, utmp, utmp1, vtmp, vtmp1, y1, y2, y3, y4, y5, y6, y7, y8;
 double pr_final, pom, pom1, pom2, pom3;
 double r, r2, delta, ULt, rms, tmp1, Ut, U_r, UrU_r, Lms, Ems;
 //double q_final, U_phi, Ur;
-double am, thetaO, rin, rout, h_rh, elow, ehigh;
+double am, thetaO, cosmuO, rin, rout, h_rh, elow, ehigh, alpha2, beta, rcloud,
+       rcloud2;
 double mass, Anorm, Dnorm, g_L, E0, Lx, flux_prim, flux_refl, refl_ratio;
 double zzshift;
 double pamin, pamax, pa2min, pa2max, NpNr;
@@ -296,19 +297,24 @@ r_plus = 1. + sqrt(1. - am2);
 // thetaO - observer inclination
 ide_param[1] = param[1];
 thetaO = ide_param[1];
+cosmuO = cos(thetaO/180.*PI);
 // rin - inner edge of non-zero disc emissivity
 ide_param[2] = param[2];
 if (param[3] == 1.)
   if (param[2] < rms) rin = rms;
   else rin = param[2];
-else
+else if (param[3] == 2.) rin = param[2] * rms;
+else if (param[3] == 0.)
   if (param[2] < r_plus) rin = r_plus;
   else rin = param[2];
+else rin=0.;
 // ms - whether to integrate from rin or rms
 ide_param[3] = param[3];
 // rout - outer edge of non-zero disc emissivity
 ide_param[4] = param[4];
-rout = param[4];
+if( param[3] == 1 || param[3] == 0 ) rout = param[4];
+else if( param[3] == 2 ) rout = param[4] * rms;
+else rout=0.;
 // phi  - lower azimuth of non-zero disc emissivity (deg)
 ide_param[5] = param[5];
 // dphi - (phi+dphi) is upper azimuth of non-zero disc emissivity (deg)
@@ -417,10 +423,12 @@ ide_param[17] = polar;
 ide_param[20] = param[27];
 // alpha - position of the cloud in alpha impact parameter (in GM/c^2)
 ide_param[21] = param[15];
+alpha2 = param[15]*param[15];
 // beta - position of the cloud in beta impact parameter (in GM/c^2)
-ide_param[22] = param[16];
+beta = ide_param[22] = param[16];
 // rcloud - radius of the cloud (in GM/c^2)
-ide_param[23] = param[17];
+rcloud = ide_param[23] = param[17];
+rcloud2 = rcloud*rcloud;
 //whether the flux defined in emissivity subroutine is local one (0) or the 
 //observed one (1)
 ide_param[24] = 0.;
@@ -442,7 +450,7 @@ if(first_h) {
   else if (kydir[strlen(kydir) - 1] == '/') sprintf(tables_file, "%s%s",
                                                     kydir, LAMP);
   else sprintf(tables_file, "%s/%s", kydir, LAMP);
-// Let's read the 'KBHlamp_q' fits file
+// Let's read the 'KBHlamp80' fits file
 // The status parameter must always be initialized.
   status = 0;
   ffopen(&fptr, tables_file, READONLY, &status);
@@ -539,8 +547,13 @@ if(first_h) {
 //******************************************************************************
 //  for ( i=0; i<nrad; i++)fprintf(stdout,"%f\n",radius[i]);
 //******************************************************************************   
-// Let's read the tables for dWadWo, q, p^r and dWadSd
+// Let's read the tables for q2_a, dWadWo, q, p^r and dWadSd
 // allocate memory for the arrays
+  if ((q2_a = (float *) malloc(nincl * nh * nrh * sizeof(float))) == NULL) {
+    xs_write("kynrefionx: Failed to allocate memory for tmp arrays.", 5);
+    for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+    return;
+  }
   if ((dWadWo = (float *) malloc(nincl * nh * nrh * sizeof(float))) == NULL) {
     xs_write("kynrefionx: Failed to allocate memory for tmp arrays.", 5);
     for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
@@ -572,20 +585,23 @@ if(first_h) {
     nelements2 = nrow * nrad;
     for (irow = 0; irow < nh; irow += nrow) {
 //    the last block to read may be smaller:
-      if ((nrad - irow) < nrow) {
-        nelements1 = (nrad - irow) * nincl;
-        nelements2 = (nrad - irow) * nrad;
+      if ((nh - irow) < nrow) {
+        nelements1 = (nh - irow) * nincl;
+        nelements2 = (nh - irow) * nrad;
       }
       ffgcv(fptr, TFLOAT, 1, irow + 1, 1, nelements1, &float_nulval, 
+            &q2_a[irow * nincl + nh * nincl * ihorizon],
+            &anynul, &status);
+      ffgcv(fptr, TFLOAT, 2, irow + 1, 1, nelements1, &float_nulval, 
             &dWadWo[irow * nincl + nh * nincl * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 2, irow + 1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 4, irow + 1, 1, nelements2, &float_nulval, 
             &q[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 3, irow + 1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 5, irow + 1, 1, nelements2, &float_nulval, 
             &pr[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 4, irow + 1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 6, irow + 1, 1, nelements2, &float_nulval, 
             &dWadSd[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
     }
@@ -596,7 +612,7 @@ if(first_h) {
   irh=20;
   ih=99;
   for ( i=0; i<nincl; i++ ) fprintf(stdout,"%d\t%f\t%f\n",i,incl[i],
-    dWadWo[i+nincl*ih+nincl*nh*irh]);
+    q2_a[i+nincl*ih+nincl*nh*irh], dWadWo[i+nincl*ih+nincl*nh*irh]);
   for ( i=0; i<nrad; i++) fprintf(stdout,"%d\t%f\t%f\t%f\t%f\n",i,radius[i],
     q[i+nrad*ih+nrad*nh*irh],pr[i+nrad*ih+nrad*nh*irh],
     dWadSd[i+nrad*ih+nrad*nh*irh]);
@@ -682,6 +698,22 @@ if ((am != am_old) || (h_rh != h_rh_old) || (thetaO != thetaO_old)) {
 //if ((imax == nincl) && (thetaO > incl[nincl - 1])) ith0 = nincl;
   vtmp = (thetaO - incl[ith0 - 1]) / (incl[ith0] - incl[ith0 - 1]);
   vtmp1 = 1. - vtmp;
+// impact parameter beta_a from the axis to the observer
+  y1 = q2_a[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * (irh0 - 1)];
+  y2 = q2_a[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * irh0];
+  y3 = q2_a[ith0 - 1 + nincl * ih0 + nincl * nh * irh0];
+  y4 = q2_a[ith0 - 1 + nincl * ih0 + nincl * nh * (irh0 - 1)];
+  y5 = q2_a[ith0 + nincl * (ih0 - 1) + nincl * nh * (irh0 - 1)];
+  y6 = q2_a[ith0 + nincl * (ih0 - 1) + nincl * nh * irh0];
+  y7 = q2_a[ith0 + nincl * ih0 + nincl * nh * irh0];
+  y8 = q2_a[ith0 + nincl * ih0 + nincl * nh * (irh0 - 1)];
+  beta_a = (vtmp1 * (utmp1 * (ttmp1 * y1 + ttmp * y2) + 
+                       utmp *  (ttmp * y3 + ttmp1 * y4)) + 
+              vtmp * (utmp1 * (ttmp1 * y5 + ttmp * y6) + 
+                      utmp *  (ttmp * y7 + ttmp1 * y8)));
+  beta_a += cosmuO*cosmuO*am2;
+  if(beta_a <= 0.)beta_a = 0.;
+  beta_a = sqrt(beta_a);
 // transfer function from the axis to the observer
   y1 = dWadWo[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * (irh0 - 1)];
   y2 = dWadWo[ith0 - 1 + nincl * (ih0 - 1) + nincl * nh * irh0];
@@ -1201,7 +1233,8 @@ for (ie = 0; ie < ne; ie++) {
 }
 // Let's add primary flux to the solution (note we multiply by dt later on)
 refl_ratio=-1.;
-if (NpNr != 0) {
+if (NpNr != 0 && ( (rcloud >= 0. && rcloud2 < ( (beta_a-beta)*(beta_a-beta) + alpha2 )) || 
+                   (rcloud < 0. && rcloud2 >= ( (beta_a-beta)*(beta_a-beta) + alpha2 )) ) ) {
 // Let's compute the incomplete gamma function with the XSPEC incgamma 
 // function
   Anorm = LEDD * mass * MPC_2 * ERG * Np / pow(EC, 2. - gamma0) / PI2 / 2. / 
@@ -1258,17 +1291,18 @@ else {
     if ((pa2max + pa2min) > 180.) pa2[ie] -= 180.;
     if ((pa2max + pa2min) < -180.) pa2[ie] += 180.;
     fprintf(fw,
-      "%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\n", 
+      "%E\t%E\t%E\t%E\t%E\t%E\t%E\t%E\n", 
       0.5 * (ear[ie] + ear[ie+1]), far[ie] / (ear[ie+1] - ear[ie]), 
       qar[ie] / (ear[ie+1] - ear[ie]), uar[ie] / (ear[ie+1] - ear[ie]), 
       var[ie] / (ear[ie+1] - ear[ie]), pd[ie], pa[ie], pa2[ie]);
 //interface with XSPEC..........................................................
-    if (stokes == 1) photar[ie] = qar[ie];
-    if (stokes == 2) photar[ie] = uar[ie];
-    if (stokes == 3) photar[ie] = var[ie];
-    if (stokes == 4) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 5) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 6) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 1) photar[ie] = far[ie];
+    if (stokes == 2) photar[ie] = qar[ie];
+    if (stokes == 3) photar[ie] = uar[ie];
+    if (stokes == 4) photar[ie] = var[ie];
+    if (stokes == 5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
   }
   fclose(fw);
 }
@@ -1278,7 +1312,8 @@ else {
 // final spectrum output -- write ear[] and photar[] into file:
 fw = fopen("kynrefionx_photar.dat", "w");
 
-if( NpNr != 0. )
+if( NpNr != 0. && ( (rcloud >= 0. && rcloud2 < ( (beta_a-beta)*(beta_a-beta) + alpha2 )) || 
+                   (rcloud < 0. && rcloud2 >= ( (beta_a-beta)*(beta_a-beta) + alpha2 )) ) )
   for (ie = 0; ie < ne; ie++) fprintf(fw, "%14.6f\t%E\t%E\n", 
     0.5*(ear[ie]+ear[ie+1]), 
     (photar[ie]-Anorm*photar1[ie]) / (ear[ie+1] - ear[ie]),
@@ -1309,7 +1344,8 @@ void emis_KYNrefionx(double** ear_loc, const int ne_loc, const int nt,
 // disc surface in polar coords r, phi;
 // cosine of local emission angle --> cosmu
 
-double factor, factor1, factor2, gfactor, lensing, ionisation, fluxe[ne_loc];
+double factor, factor1, gfactor, lensing, ionisation, fluxe[ne_loc];
+//double factor2;
 double ttmp, ttmp1, y1, y2;
 long   ixi0;
 int    ie, imin, imax, ir0;
@@ -1399,8 +1435,9 @@ if ((ir0 == 0) || (ir0 >= nrad)) {
     for (ie = 0; ie < ne_loc; ie++) {
       y1 = flux1[ie + ne_loc * (ixi0 - 1)];
       y2 = flux1[ie + ne_loc * ixi0];
-      factor2 = exp( energy1[ie] / EC * (1.-1./gfactor) );
-      fluxe[ie] = (ttmp1 * y1 + ttmp * y2) * factor * factor1 * factor2;
+//      factor2 = exp( energy1[ie] / EC * (1.-1./gfactor) );
+      fluxe[ie] = (ttmp1 * y1 + ttmp * y2) * factor * factor1;
+//                  * factor2;
       if (sw == 1) fluxe[ie] *= pow(gfactor, gamma0 - 2.);
       if (nH0 > 0. && qn != 0.) fluxe[ie] *= pow(r, qn);
     }

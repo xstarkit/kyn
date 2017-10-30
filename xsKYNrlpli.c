@@ -31,7 +31,7 @@
  * local emission over the disc and uses the fits file 'KBHtablesNN.fits'
  * defining the transfer functions needed for the integration. For details on
  * ide() and the fits file see the subroutine ide(). This subroutine uses the
- * FITS 'KBHlamp_q.fits' file with transfer functions for the light coming from
+ * FITS 'KBHlamp80.fits' file with transfer functions for the light coming from
  * primary source and hitting the accretion disc (see the description of this 
  * file below). The fluorescent iron line is modelled by Monte Carlo code NOAR 
  * and is stored in the FITS file 'fluorescent_line.fits' (see the description 
@@ -77,12 +77,16 @@
  * par19 ... Stokes - what should be stored in photar() array, i.e. as output
  *                    = 0 - array of photon number density flux per bin
  *                         (array of Stokes parameter I devided by energy)
- *                    = 1 - array of Stokes parameter Q devided by energy
- *                    = 2 - array of Stokes parameter U devided by energy
- *                    = 3 - array of Stokes parameter V devided by energy
- *                    = 4 - array of degree of polarization
- *                    = 5 - array of polarization angle psi=0.5*atan(U/Q)
- *                    = 6 - array of "Stokes" angle
+ *                          with the polarisation computations switched off
+ *                    = 1 - array of photon number density flux per bin
+ *                         (array of Stokes parameter I devided by energy),
+ *                          with the polarisation computations switched on
+ *                    = 2 - array of Stokes parameter Q devided by energy
+ *                    = 3 - array of Stokes parameter U devided by energy
+ *                    = 4 - array of Stokes parameter V devided by energy
+ *                    = 5 - array of degree of polarization
+ *                    = 6 - array of polarization angle psi=0.5*atan(U/Q)
+ *                    = 7 - array of "Stokes" angle
  *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
  * par20 ... nthreads - number of threads to be used for computations
  * par21 ... normtype - how to normalize the spectra
@@ -99,7 +103,7 @@
  *
  * -----------------------------------------------------------------------------
  * 
- * KBHlamp_q.fits
+ * KBHlamp80.fits
  *
  * This file contains pre-calculated values of the functions needed for the
  * lamp-post models. It is supposed that a primary source of emission is placed
@@ -111,7 +115,7 @@
  * between the source and the disc is optically thin, therefore ray-tracing
  * in the vacuum Kerr space-time could be used for computing the functions.
  *
- * There are four functions stored in the KBHlamp_q.fits file as columns. 
+ * There are seven functions stored in the KBHlamp80.fits file as columns. 
  * They are parametrized by the value of the horizon of the black hole (FITS 
  * table extensions), height of the primary source (rows) and either the
  * inclination angles of the observer (elements) or the radius in GM/c^2
@@ -123,17 +127,24 @@
  * radius r-r_horizon = 0.01 - 1000 (100 values with exponentially growing step).
  * 
  * The functions included are:
+ * q2_a   - constant of motion, q^2, defining the photon angular momentum 
+ *          between the axis and the observer
  * dWadWo - amplification of the primary source flux:
  *        = sin(theta_axis_local) / sin(theta_observer) *
  *          dtheta_axis_local/dtheta_observer
- * q  - constant of motion defining the photon angular momentum
+ * delay_a - delay between the emission of the photon by the lamp and detecting
+ *           it by the observer
+ * q  - constant of motion defining the photon angular momentum between the axis
+ *      and the disc
  * pr - the radial component of the photon momentum at the disc
  * dWadSd - part of the amplification of the incident flux on the disc from the
  *          primary source:
  *        = sin(theta_axis_local) * dtheta_axis_local / dtheta_fake, with the
  *          theta_fake defined as tan(theta_fake) = radius_incident / height
  *          one has to multiply by h/(r^2+h^2) to get the full amplification
- *
+ * delay - delay between the emission of the photon by the lamp and falling
+ *         down at the disc
+ * 
  * The rest of the functions below are computed from the above ones:
  * g-factor - the ratio of the energy of a photon hitting the disc to the energy
  *            of the same photon when emitted from a primary source,
@@ -145,7 +156,7 @@
  *                            disc (in the local rest frame co-moving with the
  *                            disc) and the radial tetrad vector.
  *
- * The definition of the file KBHlamp_q.fits:
+ * The definition of the file KBHlamp80.fits:
  * 0. All of the extensions defined below are binary.
  * 1. The first extension contains a vector of the horizon values in GM/c^2
  *    (1.00 <= r_horizon <= 2.00).
@@ -158,9 +169,10 @@
  * 5. In the following extensions the functions are defined, each extension is
  *    for a particular value of r_horizon, each row is for a particular value of
  *    height and each element is either for a particular value of inclination
- *    (dWadWo) or incident radius (the rest of the functions).
+ *    (q2_a, dWadWo, delay_a) or incident radius (the rest of the functions).
  * 6. Each of these extensions has four columns. In each column, a particular
- *    function is stored - dWadWo, q, pr and dWadSd, respectively.
+ *    function is stored - q2_a, dWadWo, delay_a, q, pr, dWadSd and delay, 
+ *    respectively.
  * 
  * -----------------------------------------------------------------------------
  *
@@ -250,7 +262,7 @@ return(0);
 *******************************************************************************/
 
 #define NE_LOC 3
-#define LAMP "KBHlamp_q.fits"
+#define LAMP "KBHlamp80.fits"
 #define FLUORESCENT_LINE "fluorescent_line.fits"
 #define PI 3.14159265359
 
@@ -369,8 +381,8 @@ ide_param[14] = 1.;
 // (ide_param[15], ide_param[16])
 // polar - whether we need value of change in polarization angle (0-no,1-yes)
 stokes = (int) param[18];
-if ((stokes < 0) || (stokes > 6)) {
-  xs_write("kynrlpli: Stokes has to be 0-6", 5);
+if ((stokes < 0) || (stokes > 7)) {
+  xs_write("kynrlpli: Stokes has to be 0-7", 5);
   for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
   return;
 }
@@ -404,7 +416,7 @@ if (first_h && (h_rh >= 0.)) {
   else if (kydir[strlen(kydir) - 1] == '/') sprintf(tables_file, "%s%s",
                                                     kydir, LAMP);
   else sprintf(tables_file, "%s/%s", kydir, LAMP);
-// Let's read the 'KBHlamp_q' fits file
+// Let's read the 'KBHlamp80' fits file
 // The status parameter must always be initialized.
   status = 0;
   ffopen(&fptr, tables_file, READONLY, &status);
@@ -534,20 +546,20 @@ if (first_h && (h_rh >= 0.)) {
     nelements2 = nrow * nrad;
     for (irow = 0; irow < nh; irow += nrow) {
 //    the last block to read may be smaller:
-      if ((nrad - irow) < nrow) {
-        nelements1 = (nrad - irow) * nincl;
-        nelements2 = (nrad - irow) * nrad;
+      if ((nh - irow) < nrow) {
+        nelements1 = (nh - irow) * nincl;
+        nelements2 = (nh - irow) * nrad;
       }
-      ffgcv(fptr, TFLOAT, 1, irow+1, 1, nelements1, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 2, irow+1, 1, nelements1, &float_nulval, 
             &dWadWo[irow * nincl + nh * nincl * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 2, irow+1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 4, irow+1, 1, nelements2, &float_nulval, 
             &q[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 3, irow+1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 5, irow+1, 1, nelements2, &float_nulval, 
             &pr[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
-      ffgcv(fptr, TFLOAT, 4, irow+1, 1, nelements2, &float_nulval, 
+      ffgcv(fptr, TFLOAT, 6, irow+1, 1, nelements2, &float_nulval, 
             &dWadSd[irow * nrad + nh * nrad * ihorizon],
             &anynul, &status);
     }
@@ -954,17 +966,18 @@ else {
     if ((pa2max + pa2min) > 180.) pa2[ie] -= 180.;
     if ((pa2max + pa2min) < -180.) pa2[ie] += 180.;
     fprintf(fw,
-      "%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\t%14.6f\n", 
+      "%E\t%E\t%E\t%E\t%E\t%E\t%E\t%E\n", 
       0.5 * (ear[ie] + ear[ie+1]), far[ie] / (ear[ie+1] - ear[ie]), 
       qar[ie] / (ear[ie+1] - ear[ie]), uar[ie] / (ear[ie+1] - ear[ie]), 
       var[ie] / (ear[ie+1] - ear[ie]), pd[ie], pa[ie], pa2[ie]);
 //interface with XSPEC..........................................................
-    if (stokes == 1) photar[ie] = qar[ie];
-    if (stokes == 2) photar[ie] = uar[ie];
-    if (stokes == 3) photar[ie] = var[ie];
-    if (stokes == 4) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 5) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 6) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 1) photar[ie] = far[ie];
+    if (stokes == 2) photar[ie] = qar[ie];
+    if (stokes == 3) photar[ie] = uar[ie];
+    if (stokes == 4) photar[ie] = var[ie];
+    if (stokes == 5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes == 7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
   }
   fclose(fw);
 }
