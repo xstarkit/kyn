@@ -1450,9 +1450,9 @@ Definition of the parameters:
   * **par20 ... tau**
     - tau of the disc atmosphere,
     - tables created by Monte Carlo code Stokes for 
-      tau = 0.2, 0.5, 1., 2., 5., 10.
+      tau = 0.2, 0.5, 1, 2, 5, 10
     - Chandrasekhar's relations for infinite optical depth for tau > 10 
-      (I in tables is actually the same already for tau=5. and Q for tau=10.)
+      (I in tables is actually the same already for tau=5 and Q for tau=10)
   * **par21 ... nthreads**
     - number of threads used for computations
   * **par22 ... norm**
@@ -1575,9 +1575,9 @@ Definition of the parameters:
   * **par21 ... tau**
     - tau of the disc atmosphere,
     - tables created by Monte Carlo code Stokes for 
-      tau = 0.2, 0.5, 1., 2., 5., 10.
+      tau = 0.2, 0.5, 1, 2, 5, 10
     - Chandrasekhar's relations for infinite optical depth for tau > 10 
-      (I in tables is actually the same already for tau=5. and Q for tau=10.)
+      (I in tables is actually the same already for tau=5 and Q for tau=10)
   * **par22 ... nthreads**
     - number of threads used for computations
   * **par23 ... norm**
