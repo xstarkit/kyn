@@ -1229,7 +1229,7 @@ if( Np < 0. ){
   Lx = -Np;
   Np *= - incgamma(2. - gam, E0 / Ec) / 
         ( incgamma(2. - gam, 2. / Ec) - incgamma(2. - gam, 10. / Ec));
-}else{  
+}else{
   Lx = Np / g_L / g_L / transf_o /
        ( incgamma(2. - gam, 2. / g_L / Ec) - incgamma(2. - gam, 10. / g_L / Ec));
   Np = Lx * incgamma(2. - gam, E0 / Ec);        

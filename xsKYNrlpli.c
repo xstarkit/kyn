@@ -170,7 +170,7 @@
  *    for a particular value of r_horizon, each row is for a particular value of
  *    height and each element is either for a particular value of inclination
  *    (q2_a, dWadWo, delay_a) or incident radius (the rest of the functions).
- * 6. Each of these extensions has four columns. In each column, a particular
+ * 6. Each of these extensions has seven columns. In each column, a particular
  *    function is stored - q2_a, dWadWo, delay_a, q, pr, dWadSd and delay, 
  *    respectively.
  * 

@@ -2531,12 +2531,12 @@ if ((ir0 == 0) || (ir0 >= nrad)) {
         factor=1;
         if (utmp < 0.){
           utmp = 0.;
-          factor *= pow10(logden1-logden[ilogden0 - 1]);
+          factor *= pow(10, logden1-logden[ilogden0 - 1]);
 //          logden1 = logden[ilogden0 - 1];
         }
         if (utmp > 1.){
           utmp = 1.;
-          factor *= pow10(logden1-logden[ilogden0]);
+          factor *= pow(10, logden1-logden[ilogden0]);
 //          logden1 = logden[ilogden0];
         }
         utmp1 = 1. - utmp;

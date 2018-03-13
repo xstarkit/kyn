@@ -1409,7 +1409,7 @@ if ((ir0 == 0) || (ir0 >= nrad)) {
       ionisation = log10(-nH0) + qn * log10(r);
       if(sw==1) factor1 = pow(10, logxi_norm - qn * log10(r)) * 
                           lensing * gfactor * Np / mass2 / (-nH0);
-      else factor1 = pow10(logxi_norm - qn * log10(r)) *
+      else factor1 = pow(10, logxi_norm - qn * log10(r)) *
                      lensing * pow(gfactor, gamma0 - 1.) * Np / mass2 / (-nH0);
     }
 // give ionisation, find the corresponding index in logXi():
