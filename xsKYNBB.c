@@ -46,6 +46,14 @@
  *
  * par1  ... a/M     - black hole angular momentum (-1 <= a/M <= 1)
  * par2  ... theta_o - observer inclination in degrees (0-pole, 90-disc)
+ *                     if negative, the results are computed for the opposite 
+ *                     (and up-side down) observer located on the other side of 
+ *                     the disc (with the same inclination angle), i.e.
+ *                     the whole system (both the disc and black hole) is
+ *                     rotating counter-clockwise direction for the positive 
+ *                     inclination, and clockwise direction for the negative 
+ *                     inclination; this is important only for polarisation
+ *                     properties (Stokes parameter, par20, larger than 1)
  * par3  ... rin - inner edge of non-zero disc emissivity (in GM/c^2 or in 
  *                 r_mso)
  * par4  ... ms  - switch that defines the meaning/units of rin, rout
@@ -100,13 +108,18 @@
  *                    = 6 - array of polarization angle psi=0.5*atan(U/Q)
  *                    = 7 - array of "Stokes" angle
  *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
- * par21 ... tau      - tau of the disc atmosphere, 
+ * par21 ... chi0     - orientation of the system (-90 < chi0 < 90), 
+ *                      the orientation angle (in degrees) of the system 
+ *                      rotation axis with direction up, this angle is added to 
+ *                      the computed polarisation angle at infinity, 
+ *                      the orientation is degenarate by 180 degrees
+ * par22 ... tau      - tau of the disc atmosphere, 
  *                    - tables created by Monte Carlo code Stokes for tau = 0.2, 
  *                      0.5, 1., 2., 5., 10.
  *                    - Chandrasekhar's relations for infinite optical depth for
  *                      tau > 10 (I in tables is actually the same already for 
  *                      tau=5. and Q for tau=10.)
- * par22 ... nthreads - number of threads to be used for computations
+ * par23 ... nthreads - number of threads to be used for computations
  *
  * NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
@@ -126,7 +139,7 @@
 #define NE     200
 #define E_MIN  0.01
 #define E_MAX  20.
-#define NPARAM 21
+#define NPARAM 22
 #define IFL    1
 
 int main() {
@@ -158,8 +171,9 @@ param[16] = 1.;         // division
 param[17] = 180.;       // nphi
 param[18] = 0.;         // smooth
 param[19] = 1.;         // Stokes
-param[20] = 11.;        // tau
-param[21] = 4.;         // nthreads
+param[20] = 0.;         // chi0
+param[21] = 11.;        // tau
+param[22] = 4.;         // nthreads
 
 for (ie = 0; ie <= NE; ie++) {
 //  ear[ie] = E_MIN + ie * (E_MAX-E_MIN) / NE;
@@ -236,9 +250,10 @@ static float  *IQ;
 FILE *fw;
 double ide_param[25], flux_out[ne + 1];
 double far[ne], qar[ne], uar[ne], var[ne], pd[ne], pa[ne], pa2[ne];
-double I_l, I_r, Q_l, cose0, ttmp, ttmp1, y1, y2;
+double I_l, I_r, Q_l, cose0, ttmp, ttmp1, y1, y2, tmp;
 double pamin, pamax, pa2min, pa2max;
-double am2, pom, pom1, pom2, pom3, rms, r_plus, x, Ccal, Lcal, arcosa3;
+double am2, pom, pom1, pom2, pom3, rms, r_plus, x, Ccal, Lcal, arcosa3,
+       orientation, chi0;
 int    ne_loc, stokes, ie, irow, imin, imax, i0, itau0;
 
 // these are needed to work with a fits file...
@@ -270,8 +285,10 @@ x1 = 2 * cos(arcosa3 - PI / 3.);
 x2 = 2 * cos(arcosa3 + PI / 3.);
 x3 = -2 * cos(arcosa3);
 // theta_o - observer inclination
-ide_param[1] = param[1];
-theta_o = param[1];
+orientation = 1.;
+if(param[1] < 0.) orientation = -1.;
+ide_param[1] = fabs(param[1]);
+theta_o = fabs(param[1]);
 // rin - inner edge of non-zero disc emissivity
 ide_param[2] = param[2];
 // ms - whether to integrate from rin or rms
@@ -336,7 +353,13 @@ if ((stokes < 0) || (stokes > 7)) {
 polar = 0;
 if (stokes > 0) polar = 1;
 ide_param[17] = polar;
-tau0 = param[20];
+chi0 = param[20]/180.*PI;
+if (((chi0 < -90.) || (chi0 > 90.)) && polar) {
+  xs_write("kynbb: chi0 has to be between -90 and 90 degrees", 5);
+  for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+  return;
+}
+tau0 = param[21];
 if ((tau0 < 0.2) && polar) {
   xs_write("kynbb: tau has to be larger or equal to 0.2", 5);
   for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
@@ -345,7 +368,7 @@ if ((tau0 < 0.2) && polar) {
 // delay_r and delay_phi are not used
 // (ide_param[18], ide_param[19])
 // number of threads for multithread computations
-ide_param[20] = param[21];
+ide_param[20] = param[22];
 // alpha - position of the cloud in alpha impact parameter (in GM/c^2)
 ide_param[21] = param[10];
 // beta - position of the cloud in beta impact parameter (in GM/c^2)
@@ -380,6 +403,7 @@ fprintf(fw, "division     %12d\n", (int) param[16]);
 fprintf(fw, "nphi         %12d\n", (int) param[17]);
 fprintf(fw, "smooth       %12d\n", (int) param[18]);
 fprintf(fw, "Stokes       %12d\n", (int) param[19]);
+fprintf(fw, "chi0         %12.6f\n", param[20]);
 fprintf(fw, "tau          %12.6f\n", tau0);
 fprintf(fw, "r_horizon    %12.6f\n", r_plus);
 fprintf(fw, "r_ms         %12.6f\n", rms);
@@ -569,47 +593,47 @@ if( rout == ROUTMAX ) outer_disc(ear, ne, flux_out);
 // interface with XSPEC
 // final spectrum output -- write ear[] and photar[] into file:
 if (!stokes){
-  if( rout == ROUTMAX ) for (ie = 0; ie < ne; ie++) photar[ie] = far[ie] + flux_out[ie];
+  if( rout == ROUTMAX ) 
+    for (ie = 0; ie < ne; ie++) photar[ie] = far[ie] + flux_out[ie];
   else for (ie = 0; ie < ne; ie++) photar[ie] = far[ie];
 } else {
-  cose0 = cos( theta_o / 180. * PI );
-  if( tau0 <= tau[ntau - 1] ){
+  if( rout == ROUTMAX ){
+    cose0 = cos( theta_o / 180. * PI );
+    if( tau0 <= tau[ntau - 1] ){
 // Rene's tables
-    imin = 1;
-    imax = ncose;
-    i0 = ( 1 + ncose) / 2;
-    while ( ( imax - imin ) > 1 ){
-      if( cose0 >= cose[i0] ) imin = i0;
-      else imax = i0;
-      i0 = ( imin + imax ) / 2;
-    }
-    I_l = ( I_loc[imin+1] - I_loc[imin] ) / 
-          ( cose[imin+1] - cose[imin] ) * ( cose0 - cose[imin] ) + 
-            I_loc[imin];
-    Q_l = ( Q_loc[imin+1] - Q_loc[imin] ) / 
-          ( cose[imin+1] - cose[imin] ) * ( cose0 - cose[imin] ) + 
-            Q_loc[imin];
-    if( rout == ROUTMAX )
+      imin = 1;
+      imax = ncose;
+      i0 = ( 1 + ncose) / 2;
+      while ( ( imax - imin ) > 1 ){
+        if( cose0 >= cose[i0] ) imin = i0;
+        else imax = i0;
+        i0 = ( imin + imax ) / 2;
+      }
+      I_l = ( I_loc[imin+1] - I_loc[imin] ) / 
+            ( cose[imin+1] - cose[imin] ) * ( cose0 - cose[imin] ) + 
+              I_loc[imin];
+      Q_l = ( Q_loc[imin+1] - Q_loc[imin] ) / 
+            ( cose[imin+1] - cose[imin] ) * ( cose0 - cose[imin] ) + 
+              Q_loc[imin];
       for( ie=0; ie<ne; ie++ ){
         far[ie] += I_l * flux_out[ie];
         qar[ie] += Q_l * flux_out[ie];
       }
-  } else{
+    } else{
 // Chandrasekhar's formulae
-    imin =  0;
-    imax = 20;
-    i0   = 10;
-    while ( ( imax - imin ) > 1 ){
-     if( cose0 >= i0 * 0.05 ) imin = i0;
-     else imax = i0;
-     i0 = ( imin + imax ) / 2;
-    }
+      imin =  0;
+      imax = 20;
+      i0   = 10;
+      while ( ( imax - imin ) > 1 ){
+       if( cose0 >= i0 * 0.05 ) imin = i0;
+       else imax = i0;
+       i0 = ( imin + imax ) / 2;
+      }
 // let's interpolate the I_l and I_r between cos(theta_o)
-    I_l = ( I_l0[imin+1] - I_l0[imin] ) / 0.05 * ( cose0 - imin * 0.05 ) +
-            I_l0[imin];
-    I_r = ( I_r0[imin+1] - I_r0[imin] ) / 0.05 * ( cose0 - imin * 0.05 ) +
-            I_r0[imin];
-    if( rout == ROUTMAX )
+      I_l = ( I_l0[imin+1] - I_l0[imin] ) / 0.05 * ( cose0 - imin * 0.05 ) +
+              I_l0[imin];
+      I_r = ( I_r0[imin+1] - I_r0[imin] ) / 0.05 * ( cose0 - imin * 0.05 ) +
+              I_r0[imin];
       for( ie=0; ie<ne; ie++ ){
 /* model with Rayleigh scattering according to the Chandrasekhar table XXIV
    overall flux integrated in emission angles (eq.96 in 68.6 chapter X in 
@@ -617,7 +641,20 @@ if (!stokes){
         far[ie] += ( I_l + I_r ) * flux_out[ie];
         qar[ie] += ( I_l - I_r ) * flux_out[ie];
       }
+    }
   }
+
+// let's change the angle to opposite due to opposite system rotation
+  if(orientation == -1.) 
+    for( ie=0; ie<ne; ie++ )
+      uar[ie] = -uar[ie];
+// let's add the angle due to the orientation of the system 
+  if(chi0 != 0.)
+    for( ie=0; ie<ne; ie++ ){
+      tmp = qar[ie];
+      qar[ie] = qar[ie]*cos(2*chi0)-uar[ie]*sin(2*chi0);
+      uar[ie] = uar[ie]*cos(2*chi0)+tmp*sin(2*chi0);
+    }
 
   pamin = 1e30;
   pamax = -1e30;

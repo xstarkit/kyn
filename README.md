@@ -260,16 +260,16 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
     - 1: if the inner edge of the disc is below marginally stable orbit (MSO) 
          then we integrate emission above MSO only
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
-         edge = par3 &times; r~mso~ (the same applies for outer edge)
+         edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -288,7 +288,7 @@ Definition of the parameters:
   * **par12 ... rb**
     - boundary between the region with power-law index q_out and q_in
     - if > 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
-      r~mso~
+      r<sub>mso</sub>
     - if <= 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c^2
   * **par13 ... jump**
     - ratio of local flux in inner region to local flux in outer region at 
@@ -331,13 +331,13 @@ Definition of the parameters:
     - 1: simple smoothing
   * **par24 ... Stokes** 
     - definition of output
-    - 0: photon number density flux per bin (Stokes parameter I devided by 
+    - 0: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched off
-    - 1: photon number density flux per bin (Stokes parameter I devided by 
+    - 1: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched on
-    - 2: Stokes parameter Q devided by energy
-    - 3: Stokes parameter U devided by energy
-    - 4: Stokes parameter V devided by energy
+    - 2: Stokes parameter Q divided by energy
+    - 3: Stokes parameter U divided by energy
+    - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
     - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
@@ -390,16 +390,16 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
     - 1: if the inner edge of the disc is below marginally stable orbit (MSO) 
          then we integrate emission above MSO only
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
-         edge = par3 &times; r~mso~ (the same applies for outer edge)
+         edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -442,13 +442,13 @@ Definition of the parameters:
     - 1: simple smoothing
   * **par19 ... Stokes** 
     - definition of output
-    - 0: photon number density flux per bin (Stokes parameter I devided by 
+    - 0: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched off
-    - 1: photon number density flux per bin (Stokes parameter I devided by 
+    - 1: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched on
-    - 2: Stokes parameter Q devided by energy
-    - 3: Stokes parameter U devided by energy
-    - 4: Stokes parameter V devided by energy
+    - 2: Stokes parameter Q divided by energy
+    - 3: Stokes parameter U divided by energy
+    - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
     - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
@@ -497,16 +497,16 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
     - 1: if the inner edge of the disc is below marginally stable orbit (MSO) 
          then we integrate emission above MSO only
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
-         edge = par3 &times; r~mso~ (the same applies for outer edge)
+         edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -521,7 +521,7 @@ Definition of the parameters:
   * **par10 ... rb**
     - boundary between the region with power-law index q_out and q_in
     - if > 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
-      r~mso~
+      r<sub>mso</sub>
     - if <= 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c^2
   * **par11 ... jump**
     - ratio of local flux in inner region to local flux in outer region at 
@@ -567,13 +567,13 @@ Definition of the parameters:
     - 1: simple smoothing
   * **par23 ... Stokes** 
     - definition of output
-    - 0: photon number density flux per bin (Stokes parameter I devided by 
+    - 0: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched off
-    - 1: photon number density flux per bin (Stokes parameter I devided by 
+    - 1: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched on
-    - 2: Stokes parameter Q devided by energy
-    - 3: Stokes parameter U devided by energy
-    - 4: Stokes parameter V devided by energy
+    - 2: Stokes parameter Q divided by energy
+    - 3: Stokes parameter U divided by energy
+    - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
     - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
@@ -636,16 +636,16 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
     - 1: if the inner edge of the disc is below marginally stable orbit (MSO) 
          then we integrate emission above MSO only
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
-         edge = par3 &times; r~mso~ (the same applies for outer edge)
+         edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -691,13 +691,13 @@ Definition of the parameters:
     - 1: simple smoothing
   * **par20 ... Stokes** 
     - definition of output
-    - 0: photon number density flux per bin (Stokes parameter I devided by 
+    - 0: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched off
-    - 1: photon number density flux per bin (Stokes parameter I devided by 
+    - 1: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched on
-    - 2: Stokes parameter Q devided by energy
-    - 3: Stokes parameter U devided by energy
-    - 4: Stokes parameter V devided by energy
+    - 2: Stokes parameter Q divided by energy
+    - 3: Stokes parameter U divided by energy
+    - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
     - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
@@ -771,16 +771,16 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
     - 1: if the inner edge of the disc is below marginally stable orbit (MSO) 
          then we integrate emission above MSO only
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
-         edge = par3 &times; r~mso~ (the same applies for outer edge)
+         edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -793,17 +793,17 @@ Definition of the parameters:
       source is located (GM/c^(2))
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
-  * **par11 ... L/L~Edd~**
+  * **par11 ... L/L<sub>Edd</sub>**
     - dE/dt, the observed (if positive) or the intrinsic local (if negative) 
       primary isotropic flux in the X-ray energy range 2-10keV in units of 
-      L~Edd~
+      L<sub>Edd</sub>
   * **par12 ... Np:Nr**
     - ratio of the primary to the reflected normalization
     - 1: self-consistent model for isotropic primary source
     - 0: only reflection, primary source is hidden
-    - if positive then L/L~Edd~ (par11) means the luminosity towards the 
+    - if positive then L/L<sub>Edd</sub> (par11) means the luminosity towards the 
       observer
-    - if negative then L/L~Edd~ (par11) means the luminosity towards the disc
+    - if negative then L/L<sub>Edd</sub> (par11) means the luminosity towards the disc
   * **par13 ... line**
     - whether to include lines and/or reflection continuum in the spectra
     -  0: only continuum
@@ -860,13 +860,13 @@ Definition of the parameters:
     - 1: simple smoothing
   * **par24 ... Stokes** 
     - definition of output
-    - 0: photon number density flux per bin (Stokes parameter I devided by 
+    - 0: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched off
-    - 1: photon number density flux per bin (Stokes parameter I devided by 
+    - 1: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched on
-    - 2: Stokes parameter Q devided by energy
-    - 3: Stokes parameter U devided by energy
-    - 4: Stokes parameter V devided by energy
+    - 2: Stokes parameter Q divided by energy
+    - 3: Stokes parameter U divided by energy
+    - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
     - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
@@ -926,16 +926,16 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
     - 1: if the inner edge of the disc is below marginally stable orbit (MSO) 
          then we integrate emission above MSO only
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
-         edge = par3 &times; r~mso~ (the same applies for outer edge)
+         edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -948,17 +948,17 @@ Definition of the parameters:
       source is located (GM/c^(2))
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
-  * **par11 ... L/L~Edd~**
+  * **par11 ... L/L<sub>Edd</sub>**
     - dE/dt, the observed (if positive) or the intrinsic local (if negative) 
       primary isotropic flux in the X-ray energy range 2-10keV in units of 
-      L~Edd~
+      L<sub>Edd</sub>
   * **par12 ... Np:Nr**
     - ratio of the primary to the reflected normalization
     - 1: self-consistent model for isotropic primary source
     - 0: only reflection, primary source is hidden
-    - if positive then L/L~Edd~ (par11) means the luminosity towards the 
+    - if positive then L/L<sub>Edd</sub> (par11) means the luminosity towards the 
       observer
-    - if negative then L/L~Edd~ (par11) means the luminosity towards the disc
+    - if negative then L/L<sub>Edd</sub> (par11) means the luminosity towards the disc
   * **par13 ... density/ionisation**
     - density profile normalization in 10^15 cm^(-3) if positive
     - ionisation profile normalisation if it is negative
@@ -1079,16 +1079,16 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
     - 1: if the inner edge of the disc is below marginally stable orbit (MSO) 
          then we integrate emission above MSO only
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
-         edge = par3 &times; r~mso~ (the same applies for outer edge)
+         edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -1101,17 +1101,17 @@ Definition of the parameters:
       source is located (GM/c^(2))
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
-  * **par11 ... L/L~Edd~**
+  * **par11 ... L/L<sub>Edd</sub>**
     - dE/dt, the observed (if positive) or the intrinsic local (if negative) 
       primary isotropic flux in the X-ray energy range 2-10keV in units of 
-      L~Edd~
+      L<sub>Edd</sub>
   * **par12 ... Np:Nr**
     - ratio of the primary to the reflected normalization
     - 1: self-consistent model for isotropic primary source
     - 0: only reflection, primary source is hidden
-    - if positive then L/L~Edd~ (par11) means the luminosity towards the 
+    - if positive then L/L<sub>Edd</sub> (par11) means the luminosity towards the 
       observer
-    - if negative then L/L~Edd~ (par11) means the luminosity towards the disc
+    - if negative then L/L<sub>Edd</sub> (par11) means the luminosity towards the disc
   * **par13 ... density/ionisation**
     - density profile normalization in 10^15 cm^(-3) if positive, 
       i.e. n = par13 &times; r^(par14)
@@ -1247,16 +1247,16 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
     - 1: if the inner edge of the disc is below marginally stable orbit (MSO) 
          then we integrate emission above MSO only
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
-         edge = par3 &times; r~mso~ (the same applies for outer edge)
+         edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -1273,7 +1273,7 @@ Definition of the parameters:
   * **par11 ... rb**
     - boundary between the region with power-law index q_out and q_in
     - if > 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
-      r~mso~
+      r<sub>mso</sub>
     - if <= 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c^2
   * **par12 ... jump**
     - ratio of local flux in inner region to local flux in outer region at 
@@ -1318,13 +1318,13 @@ Definition of the parameters:
     - 1: simple smoothing
   * **par26 ... Stokes** 
     - definition of output
-    - 0: photon number density flux per bin (Stokes parameter I devided by 
+    - 0: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched off
-    - 1: photon number density flux per bin (Stokes parameter I devided by 
+    - 1: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched on
-    - 2: Stokes parameter Q devided by energy
-    - 3: Stokes parameter U devided by energy
-    - 4: Stokes parameter V devided by energy
+    - 2: Stokes parameter Q divided by energy
+    - 3: Stokes parameter U divided by energy
+    - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
     - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
@@ -1381,17 +1381,23 @@ Definition of the parameters:
     - black hole angular momentum (-1 &le; a/M &le; 1)
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
+      if negative, the results are computed for the opposite (and up-side down) 
+      observer located on the other side of the disc (with the same inclination 
+      angle), i.e. the whole system (both the disc and black hole) is rotating 
+      counter-clockwise direction for the positive inclination, and clockwise 
+      direction for the negative inclination; this is important only for the 
+      polarisation properties (Stokes parameter, par19, larger than 1)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
     - 1: if the inner edge of the disc is below marginally stable orbit (MSO) 
          then we integrate emission above MSO only
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
-         edge = par3 &times; r~mso~ (the same applies for outer edge)
+         edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
     - if outer edge is equal or larger than 1000 GM/c^2 then the emission from 
       above this radius is added
   * **par6  ... phi**
@@ -1435,28 +1441,35 @@ Definition of the parameters:
     - 1: simple smoothing
   * **par19 ... Stokes** 
     - definition of output
-    - 0: photon number density flux per bin (Stokes parameter I devided by 
+    - 0: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched off
-    - 1: photon number density flux per bin (Stokes parameter I devided by 
+    - 1: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched on, different 
          approximation for computed flux is used with non-isotropic emission 
          directionality
-    - 2: Stokes parameter Q devided by energy
-    - 3: Stokes parameter U devided by energy
-    - 4: Stokes parameter V devided by energy
+    - 2: Stokes parameter Q divided by energy
+    - 3: Stokes parameter U divided by energy
+    - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
     - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
-  * **par20 ... tau**
+  * **par20 ... chi0**
+    - orientation of the system (-90 < chi0 < 90), 
+      the orientation angle (in degrees) of the system rotation axis with 
+      direction up, this angle is added to the computed polarisation angle at 
+      infinity, the orientation is degenarate by 180 degrees
+  * **par21 ... tau**
     - tau of the disc atmosphere,
     - tables created by Monte Carlo code Stokes for tau = 0.2, 0.5, 1, 2, 5, 10
       are used for tau &le; 10
     - Chandrasekhar's relations for infinite optical depth are used for tau > 10 
       (I in tables is actually the same already for tau=5 and Q for tau=10)
-  * **par21 ... nthreads**
+  * **par22 ... nthreads**
     - number of threads used for computations
-  * **par22 ... norm**
+  * **par23 ... norm**
     - equals to 1/D^2 where D is a source distance in 10kpc
+    - has to be set to unity for polarisation degree and polarisation angle, 
+      i.e. for par19 equal to 5,6 or 7
 
 _Note:_
   * KYRH (the black hole horizon), KYRIN (the disc inner edge) and 
@@ -1504,17 +1517,23 @@ Definition of the parameters:
     - black hole angular momentum (-1 &le; a/M &le; 1)
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
+      if negative, the results are computed for the opposite (and up-side down) 
+      observer located on the other side of the disc (with the same inclination 
+      angle), i.e. the whole system (both the disc and black hole) is rotating 
+      counter-clockwise direction for the positive inclination, and clockwise 
+      direction for the negative inclination; this is important only for the 
+      polarisation properties (Stokes parameter, par20, larger than 1)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
     - 1: if the inner edge of the disc is below marginally stable orbit (MSO) 
          then we integrate emission above MSO only
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
-         edge = par3 &times; r~mso~ (the same applies for outer edge)
+         edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r~mso~)
+    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
     - if outer edge is equal or larger than 1000 GM/c^2 then the emission from 
       above this radius is added
   * **par6  ... phi**
@@ -1560,28 +1579,35 @@ Definition of the parameters:
     - 1: simple smoothing
   * **par20 ... Stokes** 
     - definition of output
-    - 0: photon number density flux per bin (Stokes parameter I devided by 
+    - 0: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched off
-    - 1: photon number density flux per bin (Stokes parameter I devided by 
+    - 1: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched on, different 
          approximation for computed flux is used with non-isotropic emission 
          directionality
-    - 2: Stokes parameter Q devided by energy
-    - 3: Stokes parameter U devided by energy
-    - 4: Stokes parameter V devided by energy
+    - 2: Stokes parameter Q divided by energy
+    - 3: Stokes parameter U divided by energy
+    - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
     - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
-  * **par21 ... tau**
+  * **par21 ... chi0**
+    - orientation of the system (-90 < chi0 < 90), 
+      the orientation angle (in degrees) of the system rotation axis with 
+      direction up, this angle is added to the computed polarisation angle at 
+      infinity, the orientation is degenarate by 180 degrees
+  * **par22 ... tau**
     - tau of the disc atmosphere,
     - tables created by Monte Carlo code Stokes for tau = 0.2, 0.5, 1, 2, 5, 10
       are used for tau &le; 10
     - Chandrasekhar's relations for infinite optical depth are used for tau > 10 
       (I in tables is actually the same already for tau=5 and Q for tau=10)
-  * **par22 ... nthreads**
+  * **par23 ... nthreads**
     - number of threads used for computations
-  * **par23 ... norm**
+  * **par24 ... norm**
     - equals to 1/D^2 where D is a source distance in 10kpc
+    - has to be set to unity for polarisation degree and polarisation angle, 
+      i.e. for par20 equal to 5,6 or 7
 
 _Note:_
   * KYRH (the black hole horizon), KYRIN (the disc inner edge) and 
