@@ -28,3 +28,8 @@ int xs_write(char* text,int  idest){
   fprintf(stdout,"%s\n",text);
   return(0);
 }
+
+// Return value correspondent to the key (XFLT####) in the spectrum
+float DGFILT(int ifl, const char* key){
+  return(0.);
+}

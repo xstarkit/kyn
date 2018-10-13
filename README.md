@@ -1441,6 +1441,11 @@ Definition of the parameters:
     - 1: simple smoothing
   * **par19 ... Stokes** 
     - definition of output
+    - -1: the output is defined according to the XFLT0001 keyword 
+          of the SPECTRUM extension of the data file,
+           where "Stokes:0" means photon number density flux,
+           "Stokes:1" means Stokes parameter Q divided by energy and 
+           "Stokes:2" means Stokes parameter U divided by energy 
     - 0: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched off
     - 1: photon number density flux per bin (Stokes parameter I divided by 
@@ -1457,7 +1462,7 @@ Definition of the parameters:
     - orientation of the system (-90 < chi0 < 90), 
       the orientation angle (in degrees) of the system rotation axis with 
       direction up, this angle is added to the computed polarisation angle at 
-      infinity, the orientation is degenarate by 180 degrees
+      infinity; the orientation is degenarate by 180 degrees
   * **par21 ... tau**
     - tau of the disc atmosphere,
     - tables created by Monte Carlo code Stokes for tau = 0.2, 0.5, 1, 2, 5, 10
@@ -1469,7 +1474,7 @@ Definition of the parameters:
   * **par23 ... norm**
     - equals to 1/D^2 where D is a source distance in 10kpc
     - has to be set to unity for polarisation degree and polarisation angle, 
-      i.e. for par19 equal to 5,6 or 7
+      i.e. for par19 equal to 5, 6 or 7
 
 _Note:_
   * KYRH (the black hole horizon), KYRIN (the disc inner edge) and 
@@ -1579,6 +1584,11 @@ Definition of the parameters:
     - 1: simple smoothing
   * **par20 ... Stokes** 
     - definition of output
+    - -1: the output is defined according to the XFLT0001 keyword 
+          of the SPECTRUM extension of the data file,
+           where "Stokes:0" means photon number density flux,
+           "Stokes:1" means Stokes parameter Q divided by energy and 
+           "Stokes:2" means Stokes parameter U divided by energy 
     - 0: photon number density flux per bin (Stokes parameter I divided by 
          energy) with the polarisation computations switched off
     - 1: photon number density flux per bin (Stokes parameter I divided by 
@@ -1595,7 +1605,7 @@ Definition of the parameters:
     - orientation of the system (-90 < chi0 < 90), 
       the orientation angle (in degrees) of the system rotation axis with 
       direction up, this angle is added to the computed polarisation angle at 
-      infinity, the orientation is degenarate by 180 degrees
+      infinity; the orientation is degenarate by 180 degrees
   * **par22 ... tau**
     - tau of the disc atmosphere,
     - tables created by Monte Carlo code Stokes for tau = 0.2, 0.5, 1, 2, 5, 10
@@ -1607,7 +1617,7 @@ Definition of the parameters:
   * **par24 ... norm**
     - equals to 1/D^2 where D is a source distance in 10kpc
     - has to be set to unity for polarisation degree and polarisation angle, 
-      i.e. for par20 equal to 5,6 or 7
+      i.e. for par20 equal to 5, 6 or 7
 
 _Note:_
   * KYRH (the black hole horizon), KYRIN (the disc inner edge) and 

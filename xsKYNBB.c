@@ -93,6 +93,12 @@
  * par18 ... nphi   - number of grid points in azimuth
  * par19 ... smooth - whether to smooth the resulting spectrum (0-no, 1-yes)
  * par20 ... Stokes - what should be stored in photar() array, i.e. as output
+ *                    = -1 - the output is defined according to the XFLT0001 
+ *                           keyword of the SPECTRUM extension of the data file,
+ *                           where "Stokes:0" means photon number density flux,
+ *                           "Stokes:1" means Stokes parameter Q devided by 
+ *                           energy and "Stokes:2" means Stokes parameter U 
+ *                           devided by energy
  *                    = 0 - array of photon number density flux per bin
  *                         (array of Stokes parameter I devided by energy)
  *                          with the polarisation computations switched off
@@ -134,12 +140,13 @@
 
 /*******************************************************************************
 *******************************************************************************/
+#define NPARAM 23
+
 #ifdef OUTSIDE_XSPEC
 
 #define NE     200
 #define E_MIN  0.01
 #define E_MAX  20.
-#define NPARAM 22
 #define IFL    1
 
 int main() {
@@ -222,6 +229,7 @@ static double I_r0[NCOSE0] = {0.23147,0.25877,0.28150,0.30299,0.32381,0.34420,
                               0.59661,0.61566,0.63469};
 
 extern int xs_write(char* wrtstr, int idest);
+extern float DGFILT(int ifl, const char* key);
 
 void KYNBB(const double *ear, int ne, const double *param, int ifl, 
            double *photar, double *photer, const char* init) {
@@ -244,17 +252,20 @@ void outer_disc(const double *ear, const int ne, double *flux);
    run in XSPEC */
 static char   kydir[255] = "";
 static char   pname[128] = "KYDIR";
-static int    polar_old = -1; 
+static int    polar_old = -1, param_unchanged = -1, ne_old = -1;
 static float  *IQ;
+static double param_old[NPARAM];
+static double *far, *qar, *uar, *var;
 
 FILE *fw;
-double ide_param[25], flux_out[ne + 1];
-double far[ne], qar[ne], uar[ne], var[ne], pd[ne], pa[ne], pa2[ne];
-double I_l, I_r, Q_l, cose0, ttmp, ttmp1, y1, y2, tmp;
+double ide_param[25], flux_out[ne + 1], qar_final[ne], uar_final[ne],
+       pd[ne], pa[ne], pa2[ne];
+double I_l, I_r, Q_l, cose0, ttmp, ttmp1, y1, y2;
 double pamin, pamax, pa2min, pa2max;
-double am2, pom, pom1, pom2, pom3, rms, r_plus, x, Ccal, Lcal, arcosa3,
-       orientation, chi0;
-int    ne_loc, stokes, ie, irow, imin, imax, i0, itau0;
+double am2, pom, pom1, pom2, pom3, rms, r_plus, x, Ccal, Lcal, arcosa3, chi0;
+int    ne_loc, stokes, ie, irow, imin, imax, i0, itau0, orientation, iparam;
+float  data_type;
+char   data_type_c[8] = "Stokes";
 
 // these are needed to work with a fits file...
 fitsfile *fptr;
@@ -265,6 +276,71 @@ long     frow = 1, felem = 1, nelems, nrow;
 float    float_nulval = 0.;
 int      nelements;
 int      itau, icose, anynul, status = 0;//, maxdim=1000, naxis;
+
+// Free memory for far, qar, uar and var if they has already been created and
+// if their dimensions has changed...
+if( ne_old != -1 && ne != ne_old ){
+  free((void *) far); far = NULL;
+  free((void *) qar); qar = NULL;
+  free((void *) uar); uar = NULL;
+  free((void *) var); var = NULL;
+}
+// Allocate memory for far, qar, uar and var...
+if (ne_old == -1 || ne != ne_old )
+if ((far = (double *) malloc( ne * sizeof(double))) == NULL ||
+    (qar = (double *) malloc( ne * sizeof(double))) == NULL ||
+    (uar = (double *) malloc( ne * sizeof(double))) == NULL ||
+    (var = (double *) malloc( ne * sizeof(double))) == NULL ) {
+  xs_write("kynbb: Failed to allocate memory for Stokes arrays.", 5);
+  for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+  return;
+}
+ne_old = ne;
+
+// polar - whether we need value of change in polarization angle (0-no,1-yes)
+stokes = (int) param[19];
+if ((stokes < -1) || (stokes > 7)) {
+  xs_write("kynbb: Stokes has to be -1, 0-7", 5);
+  for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+  return;
+}
+if(stokes == -1){
+  data_type = DGFILT(ifl, data_type_c);
+  if (data_type == 0. || data_type == 1. || data_type == 2.){
+    stokes = 1 + (int) data_type;
+  }
+  else {
+    xs_write("kynbb: no or wrong information on data type (counts, q, u)", 5);
+    xs_write("kynbb: stokes = par20 = 1 (i.e. counts) will be used", 5);
+    stokes=1;
+  }
+}
+
+polar = 0;
+if (stokes != 0) polar = 1;
+ide_param[17] = polar;
+chi0 = param[20]/180.*PI;
+if (((chi0 < -90.) || (chi0 > 90.)) && polar) {
+  xs_write("kynbb: chi0 has to be between -90 and 90 degrees", 5);
+  for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+  return;
+}
+//we can skip main part of computations if we change only Stokes parameter or 
+//orientation of the system or number of threads for computations
+if(param_unchanged != -1){
+  iparam=0;
+  param_unchanged=1;
+  while( param_unchanged && iparam < NPARAM){
+    if( ( iparam !=1 && iparam != 19 && iparam != 20 && iparam != 22
+          && param[iparam] != param_old[iparam] ) ||
+        ( iparam == 1 && fabs(param[1]) != fabs(param_old[1]) ) ||
+        ( iparam == 19 && polar != polar_old && polar == 0 || polar_old == 0 ) )
+      param_unchanged = 0;
+    iparam++;
+  }
+  if( param_unchanged ) goto skip_computation;
+}
+param_unchanged=0;
 
 // Let's initialize parameters for subroutine ide()
 // a/M - black hole angular momentum
@@ -285,8 +361,6 @@ x1 = 2 * cos(arcosa3 - PI / 3.);
 x2 = 2 * cos(arcosa3 + PI / 3.);
 x3 = -2 * cos(arcosa3);
 // theta_o - observer inclination
-orientation = 1.;
-if(param[1] < 0.) orientation = -1.;
 ide_param[1] = fabs(param[1]);
 theta_o = fabs(param[1]);
 // rin - inner edge of non-zero disc emissivity
@@ -343,22 +417,6 @@ ne_loc = ne;
 ide_param[14] = 1.;
 // periodic and dt are not needed for nt = 1
 // (ide_param[15], ide_param[16])
-// polar - whether we need value of change in polarization angle (0-no,1-yes)
-stokes = (int) param[19];
-if ((stokes < 0) || (stokes > 7)) {
-  xs_write("kynbb: Stokes has to be 0-7", 5);
-  for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
-  return;
-}
-polar = 0;
-if (stokes > 0) polar = 1;
-ide_param[17] = polar;
-chi0 = param[20]/180.*PI;
-if (((chi0 < -90.) || (chi0 > 90.)) && polar) {
-  xs_write("kynbb: chi0 has to be between -90 and 90 degrees", 5);
-  for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
-  return;
-}
 tau0 = param[21];
 if ((tau0 < 0.2) && polar) {
   xs_write("kynbb: tau has to be larger or equal to 0.2", 5);
@@ -594,8 +652,7 @@ if( rout == ROUTMAX ) outer_disc(ear, ne, flux_out);
 // final spectrum output -- write ear[] and photar[] into file:
 if (!stokes){
   if( rout == ROUTMAX ) 
-    for (ie = 0; ie < ne; ie++) photar[ie] = far[ie] + flux_out[ie];
-  else for (ie = 0; ie < ne; ie++) photar[ie] = far[ie];
+    for (ie = 0; ie < ne; ie++) far[ie] += flux_out[ie];
 } else {
   if( rout == ROUTMAX ){
     cose0 = cos( theta_o / 180. * PI );
@@ -643,17 +700,25 @@ if (!stokes){
       }
     }
   }
+}
 
+skip_computation:
+if (!stokes){
+  for (ie = 0; ie < ne; ie++) photar[ie] = far[ie];
+} else{
 // let's change the angle to opposite due to opposite system rotation
-  if(orientation == -1.) 
-    for( ie=0; ie<ne; ie++ )
-      uar[ie] = -uar[ie];
-// let's add the angle due to the orientation of the system 
+  if(param[1] >= 0.)orientation=1.;
+  else orientation=-1.;
+// let's change the orientation of the system 
   if(chi0 != 0.)
     for( ie=0; ie<ne; ie++ ){
-      tmp = qar[ie];
-      qar[ie] = qar[ie]*cos(2*chi0)-uar[ie]*sin(2*chi0);
-      uar[ie] = uar[ie]*cos(2*chi0)+tmp*sin(2*chi0);
+      qar_final[ie] = qar[ie]*cos(2*chi0)-orientation*uar[ie]*sin(2*chi0);
+      uar_final[ie] = orientation*uar[ie]*cos(2*chi0)+qar[ie]*sin(2*chi0);
+    }
+  else
+    for( ie=0; ie<ne; ie++ ){
+      qar_final[ie] = qar[ie];
+      uar_final[ie] = orientation*uar[ie];
     }
 
   pamin = 1e30;
@@ -661,17 +726,18 @@ if (!stokes){
   pa2min = 1e30;
   pa2max = -1e30;
   for (ie = ne - 1; ie >= 0; ie--) {
-    pd[ie] = sqrt(qar[ie] * qar[ie] + uar[ie] * uar[ie] + var[ie] * var[ie]) /
-             (far[ie] + 1e-30);
-    pa[ie] = 0.5 * atan2(uar[ie], qar[ie]) / PI * 180.;
+    pd[ie] = sqrt(qar_final[ie] * qar_final[ie] + uar_final[ie] * uar_final[ie] 
+                  + var[ie] * var[ie]) / (far[ie] + 1e-30);
+    pa[ie] = 0.5 * atan2(uar_final[ie], qar_final[ie]) / PI * 180.;
     if (ie < (ne - 1)) {
       while ((pa[ie] - pa[ie + 1]) > 90.) pa[ie] -= 180.;
       while ((pa[ie + 1] - pa[ie]) > 90.) pa[ie] += 180.;
     }
     if (pa[ie] < pamin) pamin = pa[ie];
     if (pa[ie] > pamax) pamax = pa[ie];
-    pa2[ie] = 0.5 * asin(var[ie] / sqrt(qar[ie] * qar[ie] + uar[ie] * uar[ie] +
-              var[ie] * var[ie] + 1e-30)) / PI * 180.;
+    pa2[ie] = 0.5 * asin(var[ie] / sqrt(qar_final[ie] * qar_final[ie] 
+                         + uar_final[ie] * uar_final[ie] + var[ie] * var[ie] 
+                         + 1e-30)) / PI * 180.;
     if (ie < (ne - 1)) {
       while ((pa2[ie] - pa2[ie + 1]) > 90.) pa2[ie] -= 180.;
       while ((pa2[ie + 1] - pa2[ie]) > 90.) pa2[ie] += 180.;
@@ -688,12 +754,13 @@ if (!stokes){
     fprintf(fw,
       "%E\t%E\t%E\t%E\t%E\t%E\t%E\t%E\n", 
       0.5 * (ear[ie] + ear[ie+1]), far[ie] / (ear[ie+1] - ear[ie]), 
-      qar[ie] / (ear[ie+1] - ear[ie]), uar[ie] / (ear[ie+1] - ear[ie]), 
+      qar_final[ie] / (ear[ie+1] - ear[ie]), 
+      uar_final[ie] / (ear[ie+1] - ear[ie]), 
       var[ie] / (ear[ie+1] - ear[ie]), pd[ie], pa[ie], pa2[ie]);
 //interface with XSPEC..........................................................
     if (stokes == 1) photar[ie] = far[ie];
-    if (stokes == 2) photar[ie] = qar[ie];
-    if (stokes == 3) photar[ie] = uar[ie];
+    if (stokes == 2) photar[ie] = qar_final[ie];
+    if (stokes == 3) photar[ie] = uar_final[ie];
     if (stokes == 4) photar[ie] = var[ie];
     if (stokes == 5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
     if (stokes == 6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
@@ -726,6 +793,9 @@ free((void *) ener_loc);
 ener_loc = NULL;
 free((void *) flx);
 flx = NULL;
+
+// Store old parameter values
+for (iparam = 0; iparam < NPARAM; iparam++) param_old[iparam] = param[iparam];
 
 return;
 }
