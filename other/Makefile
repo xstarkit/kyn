@@ -13,40 +13,40 @@ SRC=xside_threads.c xside.c
 SRC1=libxspec.c
 
 CC=gcc
-INCLUDE=-I/usr/local/share/heasoft/x86_64-unknown-linux-gnu-libc2.19/include
-INCLUDE1=-I/usr/local/share/heasoft/Xspec/src
-LIBRARY_PATH=-L/usr/local/share/heasoft/x86_64-unknown-linux-gnu-libc2.19/lib
-LIBRARY= -lcfitsio_3.37 -lpthread -lm
-LIBRARY1=-lXSFunctions -lXSModel -lXSUtil -lXS  -lCCfits_2.4 -lwcs-4.20 -lstdc++ -lgfortran
+INCLUDE=-I/usr/local/share/heasoft-6.24/x86_64-pc-linux-gnu-libc2.31/include/
+INCLUDE1=-I/usr/local/share/heasoft/Xspec/src/
+LIBRARY_PATH=-L/usr/local/share/heasoft-6.24/x86_64-pc-linux-gnu-libc2.31/lib
+LIBRARY= -lcfitsio -lpthread
+LIBRARY1= -lXSFunctions -lXSModel -lXSUtil -lXS  -lCCfits_2.5 -lwcs-5.16 -lhdsp_3.0 -lstdc++ -lgfortran
 
-CFLAGS=-O3 -Wall -DOUTSIDE_XSPEC
+CFLAGS=-fPIC -O3 -Wall -DOUTSIDE_XSPEC -lm
 
 kynrline: $(SRC) $(SRC1) $(SRC_KYNRLINE)
-		 $(CC) $(CFLAGS) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNRLINE) $(LIBRARY_PATH) $(LIBRARY)
+		 $(CC) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNRLINE) $(LIBRARY_PATH) $(LIBRARY) $(CFLAGS)
 
 kynconv: $(SRC) $(SRC1) $(SRC_KYNCONV)
-		$(CC) $(CFLAGS) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNCONV) $(LIBRARY_PATH) $(LIBRARY)
+		$(CC) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNCONV) $(LIBRARY_PATH) $(LIBRARY) $(CFLAGS)
 
 kynrlpli: $(SRC) $(SRC1) $(SRC_KYNRLPLI)
-		 $(CC) $(CFLAGS) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNRLPLI) $(LIBRARY_PATH) $(LIBRARY)
+		 $(CC) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNRLPLI) $(LIBRARY_PATH) $(LIBRARY) $(CFLAGS)
 
 kynclp: $(SRC) $(SRC1) $(SRC_KYNCLP)
-		  $(CC) $(CFLAGS) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNCLP) $(LIBRARY_PATH) $(LIBRARY)
+		  $(CC) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNCLP) $(LIBRARY_PATH) $(LIBRARY) $(CFLAGS)
 
 kynbbphen: $(SRC) $(SRC1) $(SRC_KYNBBPHEN)
-		  $(CC) $(CFLAGS) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNBBPHEN) $(LIBRARY_PATH) $(LIBRARY)
+		  $(CC) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNBBPHEN) $(LIBRARY_PATH) $(LIBRARY) $(CFLAGS)
 
 kynbb: $(SRC) $(SRC1) $(SRC_KYNBB)
-	      $(CC) $(CFLAGS) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNBB) $(LIBRARY_PATH) $(LIBRARY)
+	      $(CC) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNBB) $(LIBRARY_PATH) $(LIBRARY) $(CFLAGS)
 
-kynlpcr: $(SRC) $(SRC_KYNLPCR)
-		$(CC) $(CFLAGS) $(INCLUDE) $(INCLUDE1) -o $@ $(SRC) $(SRC_KYNLPCR) $(LIBRARY_PATH) $(LIBRARY1) $(LIBRARY)
+kynlpcr: $(SRC) $(SRC1) $(SRC_KYNLPCR)
+		$(CC) $(INCLUDE) $(INCLUDE1) -o $@ $(SRC) $(SRC1) $(SRC_KYNLPCR) $(LIBRARY_PATH) $(LIBRARY1) $(LIBRARY) $(CFLAGS)
 
-kynreflionx: $(SRC) $(SRC_KYNREFIONX)
-		$(CC) $(CFLAGS) $(INCLUDE) $(INCLUDE1) -o $@ $(SRC) $(SRC_KYNREFIONX) $(LIBRARY_PATH) $(LIBRARY1) $(LIBRARY)
+kynreflionx: $(SRC) $(SRC1) $(SRC_KYNREFIONX)
+		$(CC) $(INCLUDE) $(INCLUDE1) -o $@ $(SRC) $(SRC1) $(SRC_KYNREFIONX) $(LIBRARY_PATH) $(LIBRARY1) $(LIBRARY) $(CFLAGS)
 
-kynxillver: $(SRC) $(SRC_KYNXILLVER)
-		$(CC) $(CFLAGS) $(INCLUDE) $(INCLUDE1) -o $@ $(SRC) $(SRC_KYNXILLVER) $(LIBRARY_PATH) $(LIBRARY1) $(LIBRARY)
+kynxillver: $(SRC) $(SRC1) $(SRC_KYNXILLVER)
+		$(CC) $(INCLUDE) $(INCLUDE1) -o $@ $(SRC) $(SRC1) $(SRC_KYNXILLVER) $(LIBRARY_PATH) $(LIBRARY1) $(LIBRARY) $(CFLAGS)
 
 kynhrefl: $(SRC) $(SRC1) $(SRC_KYNHREFL)
-		 $(CC) $(CFLAGS) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNHREFL) $(LIBRARY_PATH) $(LIBRARY)
+		 $(CC) $(INCLUDE) -o $@ $(SRC) $(SRC1) $(SRC_KYNHREFL) $(LIBRARY_PATH) $(LIBRARY) $(CFLAGS)

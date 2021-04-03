@@ -161,7 +161,7 @@ char   initstr[0] = "";
 int    ie;
 
 param[ 0] = 1.;       // a/M
-param[ 1] = 80.;      // theta_o
+param[ 1] = 30.;      // theta_o
 param[ 2] = 1.;       // rin
 param[ 3] = 1.;       // ms
 param[ 4] = 400.;     // rout
@@ -206,7 +206,7 @@ return(0);
 
 #define MPC_2 1.05e-49
 #define ERG 6.241509e8
-#define RG2 2.1819222e26
+#define RG2 2.1819222e26 //for M8 in cm^2
 // Ledd is in erg (not W) and multiplied by 10^8 due to (M / (10^8*Msun)) scale
 #define LEDD 1.26e46
 #define HUBBLE 70.

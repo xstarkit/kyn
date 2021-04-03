@@ -260,7 +260,7 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - inner edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
@@ -269,7 +269,7 @@ Definition of the parameters:
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
          edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - outer edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -281,15 +281,15 @@ Definition of the parameters:
     - width of the line - Gaussian sigma (eV)
   * **par10 ... q_out** 
     - power-law index for radial dependence of emissivity for outer region, 
-      scales as r^(-q_out)
+      scales as r<sup>-q_out</sup>
   * **par11  ... q_in**
     - power-law index for radial dependence of emissivity for inner region, 
-      scales as rb^(q_in-q_out) &times; r^(-q_in)
+      scales as rb<sup>q_in-q_out</sup> &times; r<sup>-q_in</sup>
   * **par12 ... rb**
     - boundary between the region with power-law index q_out and q_in
-    - if > 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
+    - if &gt; 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
       r<sub>mso</sub>
-    - if <= 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c^2
+    - if &le; 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c<sup>2</sup>
   * **par13 ... jump**
     - ratio of local flux in inner region to local flux in outer region at 
       boundary radius defined by rb
@@ -298,13 +298,13 @@ Definition of the parameters:
     -  0: for isotropic emission (flux ~ 1)
     - -1: for Laor's limb darkening (flux ~ 1+2.06&mu;)
     - -2: for Haardt's limb brightening (flux ~ ln (1+1/&mu;))
-    - if different from 0, -1 and -2 then the local emisivity is ~ mu^(limb)
+    - if different from 0, -1 and -2 then the local emisivity is ~ &mu;<sup>limb</sup>
   * **par15 ... alpha**
-    - position of the cloud centre in GM/c^2 in alpha coordinate (alpha being 
+    - position of the cloud centre in GM/c<sup>2</sup> in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
       of the disc)
   * **par16 ... beta**
-    - position of the cloud centre in GM/c^2 in beta coordinate (beta being 
+    - position of the cloud centre in GM/c<sup>2</sup> in beta coordinate (beta being 
       the impact parameter in &theta;-direction, positive in up direction, 
       i.e. above the disc)
   * **par17 ... rcloud**
@@ -340,13 +340,13 @@ Definition of the parameters:
     - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q<sup>2</sup>+U<sup>2</sup>+V<sup>2</sup>))
   * **par25 ... nthreads**
     - number of threads used for computations
   * **par26 ... normtype** 
     - how to normalize the spectra
     - 0: normalization to the total photon flux
-    - > 0: normalization to the photon flux at par26 keV
+    - &gt; 0: normalization to the photon flux at par26 keV
     - -1: the photon flux is not re-normalized,
     - -2: normalization to the maximum of the photon flux
   * **par27 ... norm**
@@ -390,7 +390,7 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - inner edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
@@ -399,7 +399,7 @@ Definition of the parameters:
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
          edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - outer edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -407,15 +407,15 @@ Definition of the parameters:
       dphi &le; 360&deg;
   * **par8  ... height**
     - height on the axis (measured from the center) at which the primary 
-      source is located (GM/c^(2))
+      source is located (GM/c<sup>2</sup>)
   * **par9  ... PhoIndex**
     - power-law energy index of the primary flux
   * **par10 ... alpha**
-    - position of the cloud centre in GM/c^2 in alpha coordinate (alpha being 
+    - position of the cloud centre in GM/c<sup>2</sup> in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
       of the disc)
   * **par11 ... beta**
-    - position of the cloud centre in GM/c^2 in beta coordinate (beta being 
+    - position of the cloud centre in GM/c<sup>2</sup> in beta coordinate (beta being 
       the impact parameter in &theta;-direction, positive in up direction, 
       i.e. above the disc)
   * **par12 ... rcloud**
@@ -451,13 +451,13 @@ Definition of the parameters:
     - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q<sup>2</sup>+U<sup>2</sup>+V<sup>2</sup>))
   * **par20 ... nthreads**
     - number of threads used for computations
   * **par21 ... normtype** 
     - how to normalize the spectra
     - 0: normalization to the total photon flux
-    - > 0: normalization to the photon flux at par21 keV
+    - &gt; 0: normalization to the photon flux at par21 keV
     - -1: the photon flux is not re-normalized,
     - -2: normalization to the maximum of the photon flux
   * **par22 ... norm**
@@ -497,7 +497,7 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - inner edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
@@ -506,7 +506,7 @@ Definition of the parameters:
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
          edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - outer edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -514,15 +514,15 @@ Definition of the parameters:
       dphi &le; 360&deg;
   * **par8  ... q_out** 
     - power-law index for radial dependence of emissivity for outer region, 
-      scales as r^(-q_out)
+      scales as r<sup>-q_out</sup>
   * **par9  ... q_in**
     - power-law index for radial dependence of emissivity for inner region, 
-      scales as rb^(q_in-q_out) &times; r^(-q_in)
+      scales as rb<sup>q_in-q_out</sup> &times; r<sup>-q_in</sup>
   * **par10 ... rb**
     - boundary between the region with power-law index q_out and q_in
-    - if > 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
+    - if &gt; 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
       r<sub>mso</sub>
-    - if <= 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c^2
+    - if &le; 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c<sup>2</sup>
   * **par11 ... jump**
     - ratio of local flux in inner region to local flux in outer region at 
       boundary radius defined by rb
@@ -531,13 +531,13 @@ Definition of the parameters:
     -  0: for isotropic emission (flux ~ 1)
     - -1: for Laor's limb darkening (flux ~ 1+2.06&mu;)
     - -2: for Haardt's limb brightening (flux ~ ln (1+1/&mu;))
-    - if different from 0, -1 and -2 then the local emisivity is ~ mu^(limb)
+    - if different from 0, -1 and -2 then the local emisivity is ~ &mu;<sup>limb</sup>
   * **par13 ... alpha**
-    - position of the cloud centre in GM/c^2 in alpha coordinate (alpha being 
+    - position of the cloud centre in GM/c<sup>2</sup> in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
       of the disc)
   * **par14 ... beta**
-    - position of the cloud centre in GM/c^2 in beta coordinate (beta being 
+    - position of the cloud centre in GM/c<sup>2</sup> in beta coordinate (beta being 
       the impact parameter in &theta;-direction, positive in up direction, 
       i.e. above the disc)
   * **par15 ... rcloud**
@@ -576,13 +576,13 @@ Definition of the parameters:
     - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q<sup>2</sup>+U<sup>2</sup>+V<sup>2</sup>))
   * **par24 ... nthreads**
     - number of threads used for computations
   * **par25 ... normtype** 
     - how to normalize the spectra
     - 0: normalization to the total photon flux
-    - > 0: normalization to the photon flux at par25 keV
+    - &gt; 0: normalization to the photon flux at par25 keV
     - -1: the photon flux is not re-normalized,
     - -2: normalization to the maximum of the photon flux
 
@@ -636,7 +636,7 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - inner edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
@@ -645,7 +645,7 @@ Definition of the parameters:
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
          edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - outer edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -653,15 +653,15 @@ Definition of the parameters:
       dphi &le; 360&deg;
   * **par8  ... height**
     - height on the axis (measured from the center) at which the primary 
-      source is located (GM/c^(2))
+      source is located (GM/c<sup>2</sup>)
   * **par9  ... PhoIndex**
     - power-law energy index of the primary flux
   * **par10 ... alpha**
-    - position of the cloud centre in GM/c^2 in alpha coordinate (alpha being 
+    - position of the cloud centre in GM/c<sup>2</sup> in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
       of the disc)
   * **par11 ... beta**
-    - position of the cloud centre in GM/c^2 in beta coordinate (beta being 
+    - position of the cloud centre in GM/c<sup>2</sup> in beta coordinate (beta being 
       the impact parameter in &theta;-direction, positive in up direction, 
       i.e. above the disc)
   * **par12 ... rcloud**
@@ -700,13 +700,13 @@ Definition of the parameters:
     - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q<sup>2</sup>+U<sup>2</sup>+V<sup>2</sup>))
   * **par21 ... nthreads**
     - number of threads used for computations
   * **par22 ... normtype** 
     - how to normalize the spectra
     - 0: normalization to the total photon flux
-    - > 0: normalization to the photon flux at par22 keV
+    - &gt; 0: normalization to the photon flux at par22 keV
     - -1: the photon flux is not re-normalized,
     - -2: normalization to the maximum of the photon flux
 
@@ -770,8 +770,14 @@ Definition of the parameters:
     - black hole angular momentum (-1 &le; a/M &le; 1)
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
+      if negative, the results are computed for the opposite (and up-side down) 
+      observer located on the other side of the disc (with the same inclination 
+      angle), i.e. the whole system (both the disc and black hole) is rotating 
+      counter-clockwise direction for the positive inclination, and clockwise 
+      direction for the negative inclination; this is important only for the 
+      polarisation properties (Stokes parameter, par24, larger than 1)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - inner edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
@@ -780,17 +786,17 @@ Definition of the parameters:
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
          edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - outer edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
     - (phi + dphi) is upper azimuth of non-zero disc emissivity 0&deg; &le; 
       dphi &le; 360&deg;
   * **par8  ... M/M8**
-       - black hole mass in units of 10^8 solar masses
+       - black hole mass in units of 10<sup>8</sup> solar masses
   * **par9  ... height**
     - height on the axis (measured from the center) at which the primary 
-      source is located (GM/c^(2))
+      source is located (GM/c<sup>2</sup>)
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
   * **par11 ... L/L<sub>Edd</sub>**
@@ -816,11 +822,11 @@ Definition of the parameters:
   * **par14 ... E_cut**
     - cut-off energy
   * **par15 ... alpha**
-    - position of the cloud centre in GM/c^2 in alpha coordinate (alpha being 
+    - position of the cloud centre in GM/c<sup>2</sup> in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
       of the disc)
   * **par16 ... beta**
-    - position of the cloud centre in GM/c^2 in beta coordinate (beta being 
+    - position of the cloud centre in GM/c<sup>2</sup> in beta coordinate (beta being 
       the impact parameter in &theta;-direction, positive in up direction, 
       i.e. above the disc)
   * **par17 ... rcloud**
@@ -828,7 +834,7 @@ Definition of the parameters:
     - the meaning of cloud is inverted for negative values of rcloud, i.e. 
       only the radiation transmitted through the cloud is computed
   * **par18 ... zshift**
-    - > 0: the overall Doppler shift z; the distance of the source is computed 
+    - &gt; 0: the overall Doppler shift z; the distance of the source is computed 
            from the Hubble law, D = zc/H, with the Hubble constant 
            H = 70 km/s/Mpc; this distance is used to compute the correct 
            normalisation of the spectrum, thus norm parameter (the normalisation 
@@ -836,7 +842,7 @@ Definition of the parameters:
     - = 0: the overall Doppler shift is set to z = 0; the distance to the source 
            and thus the correct normalisation is defined by the normalisation 
            parameter
-    - < 0: the negative value of the overall Doppler shift z used only to 
+    - &lt; 0: the negative value of the overall Doppler shift z used only to 
            compute the distance of the source from the Hubble law; this distance 
            is used to compute the correct normalisation of the spectrum, thus 
            the normalisation parameter should be frozen to unity; the overall 
@@ -869,18 +875,26 @@ Definition of the parameters:
     - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q<sup>2</sup>+U<sup>2</sup>+V<sup>2</sup>))
+    - 8: Stokes parameter Q devided by I
+    - 9: Stokes parameter U devided by I
+    - 10: Stokes parameter V devided by I
   * **par25 ... poldeg**
-    - intrinsic polarisation degree of primary radiation, used only if par24 > 0
+    - intrinsic polarisation degree of primary radiation, used only if par24 &gt; 0
   * **par26 ... polangle**
     - intrinsic polarisation angle of primary radiation measured 
       counter-clockwise from the axis in degrees when looking towards the 
       incoming photon, zero for polarisation parallel with the axis, used only 
-      if par24 > 0
-  * **par27 ... nthreads**
+      if par24 &gt; 0
+  * **par27 ... chi0**
+    - orientation of the system (-90 &lt; chi0 &lt; 90), 
+      the orientation angle (in degrees) of the system rotation axis with 
+      direction up, this angle is added to the computed polarisation angle at 
+      infinity; the orientation is degenarate by 180 degrees
+  * **par28 ... nthreads**
     - number of threads used for computations
-  * **par28 ... norm**
-    - if the overall Doppler shift zshift = 0, then norm = 1/D^2 where D is the 
+  * **par29 ... norm**
+    - if the overall Doppler shift zshift = 0, then norm = 1/D<sup>2</sup> where D is the 
       distance to the source in Mpc; **in all other cases this parameter should 
       be frozen to 1!**
 
@@ -926,7 +940,7 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - inner edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
@@ -935,17 +949,17 @@ Definition of the parameters:
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
          edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - outer edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
     - (phi + dphi) is upper azimuth of non-zero disc emissivity 0&deg; &le; 
       dphi &le; 360&deg;
   * **par8  ... M/M8**
-       - black hole mass in units of 10^8 solar masses
+       - black hole mass in units of 10<sup>8</sup> solar masses
   * **par9  ... height**
     - height on the axis (measured from the center) at which the primary 
-      source is located (GM/c^(2))
+      source is located (GM/c<sup>2</sup>)
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
   * **par11 ... L/L<sub>Edd</sub>**
@@ -960,22 +974,22 @@ Definition of the parameters:
       observer
     - if negative then L/L<sub>Edd</sub> (par11) means the luminosity towards the disc
   * **par13 ... density/ionisation**
-    - density profile normalization in 10^15 cm^(-3) if positive
+    - density profile normalization in 10<sup>15</sup> cm<sup>-3</sup> if positive
     - ionisation profile normalisation if it is negative
     - this parameter cannot be zero
   * **par14 ... den_prof/ion_prof**
     - radial power-law density profile if par13 is positive
     - radial ionisation profile if par13 is negative
     - the radial profiles in both cases are given by 
-      abs(par13) &times; r^(par14)
+      abs(par13) &times; r<sup>par14</sup>
   * **par15 ... abun**
     - Fe abundance (in solar abundance)
   * **par16 ... alpha**
-    - position of the cloud centre in GM/c^2 in alpha coordinate (alpha being 
+    - position of the cloud centre in GM/c<sup>2</sup> in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
       of the disc)
   * **par17 ... beta**
-    - position of the cloud centre in GM/c^2 in beta coordinate (beta being 
+    - position of the cloud centre in GM/c<sup>2</sup> in beta coordinate (beta being 
       the impact parameter in &theta;-direction, positive in up direction, 
       i.e. above the disc)
   * **par18 ... rcloud**
@@ -983,7 +997,7 @@ Definition of the parameters:
     - the meaning of cloud is inverted for negative values of rcloud, i.e. 
       only the radiation transmitted through the cloud is computed
   * **par19 ... zshift**
-    - > 0: the overall Doppler shift z; the distance of the source is computed 
+    - &gt; 0: the overall Doppler shift z; the distance of the source is computed 
            from the Hubble law, D = zc/H, with the Hubble constant 
            H = 70 km/s/Mpc; this distance is used to compute the correct 
            normalisation of the spectrum, thus norm parameter (the normalisation 
@@ -991,7 +1005,7 @@ Definition of the parameters:
     - = 0: the overall Doppler shift is set to z = 0; the distance to the source 
            and thus the correct normalisation is defined by the normalisation 
            parameter
-    - < 0: the negative value of the overall Doppler shift z used only to 
+    - &lt; 0: the negative value of the overall Doppler shift z used only to 
            compute the distance of the source from the Hubble law; this distance 
            is used to compute the correct normalisation of the spectrum, thus 
            the normalisation parameter should be frozen to unity; the overall 
@@ -1004,7 +1018,7 @@ Definition of the parameters:
   * **par21 ... tab**
     - which REFLION table to use
     - 1: REFLION (the old one, lower cut-off energy at 1eV, not good for 
-         PhoIndex > 2)
+         PhoIndex &gt; 2)
     - 2: REFLIONX (the newer one, lower cut-off energy at 100eV)
   * **par22 ... sw**
     - switch for the way how to compute the refl. spectra
@@ -1033,7 +1047,7 @@ Definition of the parameters:
   * **par28 ... nthreads**
     - number of threads used for computations
   * **par29 ... norm**
-    - if the overall Doppler shift zshift = 0, then norm = 1/D^2 where D is the 
+    - if the overall Doppler shift zshift = 0, then norm = 1/D<sup>2</sup> where D is the 
       distance to the source in Mpc; **in all other cases this parameter should 
       be frozen to 1!**
 
@@ -1079,7 +1093,7 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - inner edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
@@ -1088,17 +1102,17 @@ Definition of the parameters:
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
          edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - outer edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
     - (phi + dphi) is upper azimuth of non-zero disc emissivity 0&deg; &le; 
       dphi &le; 360&deg;
   * **par8  ... M/M8**
-       - black hole mass in units of 10^8 solar masses
+       - black hole mass in units of 10<sup>8</sup> solar masses
   * **par9  ... height**
     - height on the axis (measured from the center) at which the primary 
-      source is located (GM/c^(2))
+      source is located (GM/c<sup>2</sup>)
   * **par10 ... PhoIndex**
     - power-law energy index of the primary flux
   * **par11 ... L/L<sub>Edd</sub>**
@@ -1113,10 +1127,10 @@ Definition of the parameters:
       observer
     - if negative then L/L<sub>Edd</sub> (par11) means the luminosity towards the disc
   * **par13 ... density/ionisation**
-    - density profile normalization in 10^15 cm^(-3) if positive, 
-      i.e. n = par13 &times; r^(par14)
+    - density profile normalization in 10<sup>15</sup> cm<sup>-3</sup> if positive, 
+      i.e. n = par13 &times; r<sup>par14</sup>
     - ionisation profile normalisation if it is negative and  constant density 
-      xillver tables are used, i.e. &xi; = -par13 &times; r^(par14)
+      xillver tables are used, i.e. &xi; = -par13 &times; r<sup>par14</sup>
     - ionisation parameter if it is negative and xillver tables dependent on 
       density are used, i.e. &xi; = -par13
     - this parameter cannot be zero
@@ -1124,7 +1138,7 @@ Definition of the parameters:
     - radial power-law density profile if par13 is positive
     - radial ionisation profile if par13 is negative and constant density 
       xillver tables are used
-    - density in 10^15 cm^(-3) if par13 is negative and xillver tables dependent 
+    - density in 10<sup>15</sup> cm<sup>-3</sup> if par13 is negative and xillver tables dependent 
       on density are used
   * **par15 ... abun**
     - Fe abundance (in solar abundance)
@@ -1132,11 +1146,11 @@ Definition of the parameters:
     - the observed (if positive) or intrinsic local at the source (if negative) 
       cut-off energy of the primary X-ray radiation
   * **par17 ... alpha**
-    - position of the cloud centre in GM/c^2 in alpha coordinate (alpha being 
+    - position of the cloud centre in GM/c<sup>2</sup> in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
       of the disc)
   * **par18 ... beta**
-    - position of the cloud centre in GM/c^2 in beta coordinate (beta being 
+    - position of the cloud centre in GM/c<sup>2</sup> in beta coordinate (beta being 
       the impact parameter in &theta;-direction, positive in up direction, 
       i.e. above the disc)
   * **par19 ... rcloud**
@@ -1144,7 +1158,7 @@ Definition of the parameters:
     - the meaning of cloud is inverted for negative values of rcloud, i.e. 
       only the radiation transmitted through the cloud is computed
   * **par20 ... zshift**
-    - > 0: the overall Doppler shift z; the distance of the source is computed 
+    - &gt; 0: the overall Doppler shift z; the distance of the source is computed 
            from the Hubble law, D = zc/H, with the Hubble constant 
            H = 70 km/s/Mpc; this distance is used to compute the correct 
            normalisation of the spectrum, thus norm parameter (the normalisation 
@@ -1152,7 +1166,7 @@ Definition of the parameters:
     - = 0: the overall Doppler shift is set to z = 0; the distance to the source 
            and thus the correct normalisation is defined by the normalisation 
            parameter
-    - < 0: the negative value of the overall Doppler shift z used only to 
+    - &lt; 0: the negative value of the overall Doppler shift z used only to 
            compute the distance of the source from the Hubble law; this distance 
            is used to compute the correct normalisation of the spectrum, thus 
            the normalisation parameter should be frozen to unity; the overall 
@@ -1181,7 +1195,7 @@ Definition of the parameters:
     - 8: xillver-a-Ec5.fits, angle dependent with free cut-off
          energy 
     - 11: xillverD-4.fits, angle dependent with cut-off energy at 300 keV for
-          disc density 10^(15)-10^(19) cm^(-3)
+          disc density 10<sup>15</sup>-10<sup>19</sup> cm<sup>-3</sup>
   * **par23 ... ntable**
     - table of relativistic transfer functions used in the model
       (defines FITS file with tables), 0 &le; ntable &le; 99, currently the 
@@ -1201,7 +1215,7 @@ Definition of the parameters:
   * **par28 ... nthreads**
     - number of threads used for computations
   * **par29 ... norm**
-    - if the overall Doppler shift zshift = 0, then norm = 1/D^2 where D is the 
+    - if the overall Doppler shift zshift = 0, then norm = 1/D<sup>2</sup> where D is the 
       distance to the source in Mpc; **in all other cases this parameter should 
       be frozen to 1!**
 
@@ -1247,7 +1261,7 @@ Definition of the parameters:
   * **par2  ... theta_o**
     - observer inclination in degrees (0&deg;-pole, 90&deg;-disc)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - inner edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
@@ -1256,7 +1270,7 @@ Definition of the parameters:
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
          edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - outer edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
   * **par7  ... dphi**
@@ -1266,15 +1280,15 @@ Definition of the parameters:
     - power-law energy index of the primary flux
   * **par9  ... q_out** 
     - power-law index for radial dependence of emissivity for outer region, 
-      scales as r^(-q_out)
+      scales as r<sup>-q_out</sup>
   * **par10 ... q_in**
     - power-law index for radial dependence of emissivity for inner region, 
-      scales as rb^(q_in-q_out) &times; r^(-q_in)
+      scales as rb<sup>q_in-q_out</sup> &times; r<sup>-q_in</sup>
   * **par11 ... rb**
     - boundary between the region with power-law index q_out and q_in
-    - if > 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
+    - if &gt; 0 then the boundary is in units of MSO, i.e. boundary = rb &times; 
       r<sub>mso</sub>
-    - if <= 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c^2
+    - if &le; 0 then the boundary is equal to -rb+r_horizon where rb is in GM/c<sup>2</sup>
   * **par12 ... jump**
     - ratio of local flux in inner region to local flux in outer region at 
       boundary radius defined by rb
@@ -1287,11 +1301,11 @@ Definition of the parameters:
   * **par16 ... covfac**
     - normalization of the reflected emission
   * **par17 ... alpha**
-    - position of the cloud centre in GM/c^2 in alpha coordinate (alpha being 
+    - position of the cloud centre in GM/c<sup>2</sup> in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
       of the disc)
   * **par18 ... beta**
-    - position of the cloud centre in GM/c^2 in beta coordinate (beta being 
+    - position of the cloud centre in GM/c<sup>2</sup> in beta coordinate (beta being 
       the impact parameter in &theta;-direction, positive in up direction, 
       i.e. above the disc)
   * **par19 ... rcloud**
@@ -1327,7 +1341,7 @@ Definition of the parameters:
     - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q<sup>2</sup>+U<sup>2</sup>+V<sup>2</sup>))
   * **par27 ... nthreads**
     - number of threads used for computations
   * **par28 ... norm**
@@ -1348,7 +1362,7 @@ Phenomenological thermal emission from a black hole accretion disc. Black hole
 may be rotating (Kerr black hole), accretion disc is assumed to be 
 Keplerian, geometrically thin and optically thick. The radial dependence of the 
 disc black-body temperature is a simple powerlaw. The local flux is defined as
-flux ~ E^2/(exp(E/kT)-1), where T=Tin*(r/rin)^(-BBindex).
+flux ~ E<sup>2</sup>/(exp(E/kT)-1), where T=Tin*(r/rin)<sup>-BBindex</sup>.
 Only part of the disc may be set to be emitting radiation (sections defined in 
 radius and azimuth). Obscuration by circular cloud is possible. Full 
 relativistic ray-tracing code in vacuum was used for photon paths to compute the 
@@ -1388,7 +1402,7 @@ Definition of the parameters:
       direction for the negative inclination; this is important only for the 
       polarisation properties (Stokes parameter, par19, larger than 1)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - inner edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
@@ -1397,8 +1411,8 @@ Definition of the parameters:
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
          edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
-    - if outer edge is equal or larger than 1000 GM/c^2 then the emission from 
+    - outer edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
+    - if outer edge is equal or larger than 100000 GM/c<sup>2</sup> then the emission from 
       above this radius is added
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
@@ -1410,11 +1424,11 @@ Definition of the parameters:
   * **par9  ... BBindex**
     - radial power-law index for radial dependence of the black-body temperature
   * **par10 ... alpha**
-    - position of the cloud centre in GM/c^2 in alpha coordinate (alpha being 
+    - position of the cloud centre in GM/c<sup>2</sup> in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
       of the disc)
   * **par11 ... beta**
-    - position of the cloud centre in GM/c^2 in beta coordinate (beta being 
+    - position of the cloud centre in GM/c<sup>2</sup> in beta coordinate (beta being 
       the impact parameter in &theta;-direction, positive in up direction, 
       i.e. above the disc)
   * **par12 ... rcloud**
@@ -1457,9 +1471,12 @@ Definition of the parameters:
     - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q<sup>2</sup>+U<sup>2</sup>+V<sup>2</sup>))
+    - 8: Stokes parameter Q devided by I
+    - 9: Stokes parameter U devided by I
+    - 10: Stokes parameter V devided by I
   * **par20 ... chi0**
-    - orientation of the system (-90 < chi0 < 90), 
+    - orientation of the system (-90 &lt; chi0 &lt; 90), 
       the orientation angle (in degrees) of the system rotation axis with 
       direction up, this angle is added to the computed polarisation angle at 
       infinity; the orientation is degenarate by 180 degrees
@@ -1467,12 +1484,12 @@ Definition of the parameters:
     - tau of the disc atmosphere,
     - tables created by Monte Carlo code Stokes for tau = 0.2, 0.5, 1, 2, 5, 10
       are used for tau &le; 10
-    - Chandrasekhar's relations for infinite optical depth are used for tau > 10 
+    - Chandrasekhar's relations for infinite optical depth are used for tau &gt; 10 
       (I in tables is actually the same already for tau=5 and Q for tau=10)
   * **par22 ... nthreads**
     - number of threads used for computations
   * **par23 ... norm**
-    - equals to 1/D^2 where D is a source distance in 10kpc
+    - equals to 1/D<sup>2</sup> where D is a source distance in 10kpc
     - has to be set to unity for polarisation degree and polarisation angle, 
       i.e. for par19 equal to 5, 6 or 7
 
@@ -1529,7 +1546,7 @@ Definition of the parameters:
       direction for the negative inclination; this is important only for the 
       polarisation properties (Stokes parameter, par20, larger than 1)
   * **par3  ... rin**
-    - inner edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
+    - inner edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
   * **par4  ... ms**
     - switch for inner edge
     - 0: we integrate from inner edge = par3 
@@ -1538,8 +1555,8 @@ Definition of the parameters:
     - 2: we integrate from inner edge given in units of MSO, i.e. inner 
          edge = par3 &times; r<sub>mso</sub> (the same applies for outer edge)
   * **par5  ... rout**
-    - outer edge of non-zero disc emissivity (in GM/c^2 or in r<sub>mso</sub>)
-    - if outer edge is equal or larger than 1000 GM/c^2 then the emission from 
+    - outer edge of non-zero disc emissivity (in GM/c<sup>2</sup> or in r<sub>mso</sub>)
+    - if outer edge is equal or larger than 100000 GM/c<sup>2</sup> then the emission from 
       above this radius is added
   * **par6  ... phi**
     - lower azimuth of non-zero disc emissivity (degrees)
@@ -1549,15 +1566,16 @@ Definition of the parameters:
   * **par8  ... BHmass**
     - the black hole mass in units of Solar mass
   * **par9  ... arate**
-    - accretion rate in units of Solar mass per Julian year (365.25days)
+    - accretion rate in units of M<sub>Edd</sub> (if positive) or in units of 
+      Solar mass per Julian year, i.e. 365.25days (if negative)
   * **par10 ... f_col**
     - spectral hardening factor
   * **par11 ... alpha**
-    - position of the cloud centre in GM/c^2 in alpha coordinate (alpha being 
+    - position of the cloud centre in GM/c<sup>2</sup> in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
       of the disc)
   * **par12 ... beta**
-    - position of the cloud centre in GM/c^2 in beta coordinate (beta being 
+    - position of the cloud centre in GM/c<sup>2</sup> in beta coordinate (beta being 
       the impact parameter in &theta;-direction, positive in up direction, 
       i.e. above the disc)
   * **par13 ... rcloud**
@@ -1600,9 +1618,12 @@ Definition of the parameters:
     - 4: Stokes parameter V divided by energy
     - 5: degree of polarisation
     - 6: linear polarisation angle &psi; = 0.5 atan(U/Q)
-    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q^(2)+U^(2)+V^(2)))
+    - 7: circular polarisation angle &beta; = 0.5 asin(V/sqrt(Q<sup>2</sup>+U<sup>2</sup>+V<sup>2</sup>))
+    - 8: Stokes parameter Q devided by I
+    - 9: Stokes parameter U devided by I
+    - 10: Stokes parameter V devided by I
   * **par21 ... chi0**
-    - orientation of the system (-90 < chi0 < 90), 
+    - orientation of the system (-90 &lt; chi0 &lt; 90), 
       the orientation angle (in degrees) of the system rotation axis with 
       direction up, this angle is added to the computed polarisation angle at 
       infinity; the orientation is degenarate by 180 degrees
@@ -1610,12 +1631,12 @@ Definition of the parameters:
     - tau of the disc atmosphere,
     - tables created by Monte Carlo code Stokes for tau = 0.2, 0.5, 1, 2, 5, 10
       are used for tau &le; 10
-    - Chandrasekhar's relations for infinite optical depth are used for tau > 10 
+    - Chandrasekhar's relations for infinite optical depth are used for tau &gt; 10 
       (I in tables is actually the same already for tau=5 and Q for tau=10)
   * **par23 ... nthreads**
     - number of threads used for computations
   * **par24 ... norm**
-    - equals to 1/D^2 where D is a source distance in 10kpc
+    - equals to 1/D<sup>2</sup> where D is a source distance in 10kpc
     - has to be set to unity for polarisation degree and polarisation angle, 
       i.e. for par20 equal to 5, 6 or 7
 

@@ -40,6 +40,14 @@
  *
  * par1  ... a/M     - black hole angular momentum (-1 <= a/M <= 1)
  * par2  ... theta_o - observer inclination in degrees (0-pole, 90-disc)
+ *                     if negative, the results are computed for the opposite 
+ *                     (and up-side down) observer located on the other side of 
+ *                     the disc (with the same inclination angle), i.e.
+ *                     the whole system (both the disc and black hole) is
+ *                     rotating counter-clockwise direction for the positive 
+ *                     inclination, and clockwise direction for the negative 
+ *                     inclination; this is important only for polarisation
+ *                     properties (Stokes parameter, par24, larger than 1)
  * par3  ... rin - inner edge of non-zero disc emissivity (in GM/c^2 or in 
  *                 r_mso)
  * par4  ... ms  - switch that defines the meaning/units of rin, rout
@@ -99,19 +107,28 @@
  * par22 ... nphi   - number of grid points in azimuth
  * par23 ... smooth - whether to smooth the resulting spectrum (0-no, 1-yes)
  * par24 ... Stokes - what should be stored in photar() array, i.e. as output
- *                    = 0 - array of photon number density flux per bin
- *                         (array of Stokes parameter I devided by energy)
- *                          with the polarisation computations switched off
- *                    = 1 - array of photon number density flux per bin
- *                         (array of Stokes parameter I devided by energy),
- *                          with the polarisation computations switched on
- *                    = 2 - array of Stokes parameter Q devided by energy
- *                    = 3 - array of Stokes parameter U devided by energy
- *                    = 4 - array of Stokes parameter V devided by energy
- *                    = 5 - array of degree of polarization
- *                    = 6 - array of polarization angle psi=0.5*atan(U/Q)
- *                    = 7 - array of "Stokes" angle
- *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
+ *                    = -1 - the output is defined according to the XFLT0001 
+ *                           keyword of the SPECTRUM extension of the data file,
+ *                           where "Stokes:0" means photon number density flux,
+ *                           "Stokes:1" means Stokes parameter Q devided by 
+ *                           energy and "Stokes:2" means Stokes parameter U 
+ *                           devided by energy
+ *                    =  0 - array of photon number density flux per bin
+ *                          (array of Stokes parameter I devided by energy)
+ *                           with the polarisation computations switched off
+ *                    =  1 - array of photon number density flux per bin
+ *                          (array of Stokes parameter I devided by energy),
+ *                           with the polarisation computations switched on
+ *                    =  2 - array of Stokes parameter Q devided by energy
+ *                    =  3 - array of Stokes parameter U devided by energy
+ *                    =  4 - array of Stokes parameter V devided by energy
+ *                    =  5 - array of degree of polarization
+ *                    =  6 - array of polarization angle psi=0.5*atan(U/Q)
+ *                    =  7 - array of "Stokes" angle
+ *                           beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
+ *                    =  8 - array of Stokes parameter Q devided by I
+ *                    =  9 - array of Stokes parameter U devided by I
+ *                    = 10 - array of Stokes parameter V devided by I
  * par25 ... poldeg   - intrinsic polarisation degree of primary radiation,
  *                      used only if par24 > 0
  * par26 ... polangle - intrinsic polarisation angle of primary radiation
@@ -119,8 +136,13 @@
  *                      looking towards the incoming photon, zero for 
  *                      polarisation parallel with the axis, 
  *                      used only if par24 > 0
- * par27 ... nthreads - number of threads to be used for computations
- * par28 ... norm     - has to be set to unity!
+ * par27 ... chi0     - orientation of the system (-90 < chi0 < 90), 
+ *                      the orientation angle (in degrees) of the system 
+ *                      rotation axis with direction up, this angle is added to 
+ *                      the computed polarisation angle at infinity, 
+ *                      the orientation is degenarate by 180 degrees
+ * par28 ... nthreads - number of threads to be used for computations
+ * par29 ... norm     - has to be set to unity!
  *
  * NOTES:
  *  -> accuracy vs. speed trade off depends mainly on: nrad, nphi
@@ -177,9 +199,9 @@
 #ifdef OUTSIDE_XSPEC
 
 #define IFL    1
-#define NPARAM 27
+#define NPARAM 28
 #define NE     200
-#define E_MIN  1.2
+#define E_MIN  1.
 #define E_MAX  100.
 
 int main() {
@@ -198,10 +220,10 @@ param[ 3] = 1.;         // ms
 param[ 4] = 400.;       // rout
 param[ 5] = 0.;         // phi0
 param[ 6] = 360.;       // dphi
-param[ 7] = 1.;         // M/M8
+param[ 7] = 0.1;        // M/M8
 param[ 8] = 3.;         // height
-param[ 9] = 2.;         // PhoIndex
-param[10] = 0.001;      // L/Ledd
+param[ 9] = 2.0;        // PhoIndex
+param[10] = 0.01;       // L/Ledd
 param[11] = 1.;         // Np:Nr
 param[12] = 3.;         // line
 param[13] = 200.;       // E_cut
@@ -214,10 +236,11 @@ param[19] = 300.;       // nrad
 param[20] = 1.;         // division
 param[21] = 360.;       // nphi
 param[22] = 1.;         // smooth
-param[23] = 0.;         // Stokes
-param[24] = 0.02;       // poldeg
+param[23] = 1.;         // Stokes
+param[24] = 0.;         // poldeg
 param[25] = 0.;         // polangle
-param[26] = 4.;         // nthreads
+param[26] = 0.;         // chi0
+param[27] = 4.;         // nthreads
 
 for(ie = 0; ie <= NE; ie++) {
 //  ear[ie] = E_MIN + ie * (E_MAX-E_MIN) / NE;
@@ -257,6 +280,7 @@ static long   ncosi, ncose, nazim, nrad;
 extern char*  FGMODF(void);
 extern char*  FGMSTR(char* dname);
 extern int    xs_write(char* wrtstr, int idest);
+extern float  DGFILT(int ifl, const char* key);
 extern double incgamma(double a, double x);
 extern void   cutoffpl(double *ear, const int ne, double *param, double *photar);
 
@@ -294,22 +318,28 @@ FILE   *fw;
 char   errortxt[80];
 char   kyLxLamp[32], kyRefl[32];
 double ide_param[25];
-double far[ne], qar[ne], uar[ne], var[ne], pd[ne], pa[ne], pa2[ne];
+double far[ne], qar[ne], uar[ne], var[ne], pd[ne], pa[ne], pa2[ne], 
+       qar_final[ne], uar_final[ne];
 float  *energy0;
 double ttmp, ttmp1, utmp, utmp1, vtmp, vtmp1, y1, y2, y3, y4, y5, y6, y7, y8;
 double pr_final, q_final, pom, pom1, pom2, pom3;
 double r, r2, delta, ULt, rms, tmp1, Ut, U_phi, U_r, Ur, UrU_r, Lms, Ems, Uphi, 
-       pt, ptheta, pphi, Fr, Fphi;
-double am, thetaO, cosmuO, Ec, f0, f1, ratio, alpha2, beta, rcloud, rcloud2;
+//       pt, ptheta, pphi, Fr, Fphi;
+       U_t, q2, kappa1, kappa2, f_phi, f_t, f_theta;
+double am, thetaO, cosmuO, Ec, f0, f1, ratio, alpha2, beta, rcloud, rcloud2, 
+       chi0;
 double mass, Np, Anorm, Dnorm, g_L, Lx, flux_prim, flux_refl, refl_ratio;
 double zzshift;
 double pamin, pamax, pa2min, pa2max, NpNr;
-int    imin, imax, irh0, ih0, ith0, igamma, igam0, icosi, icose, iazim, iline;
+int    imin, imax, irh0, ih0, ith0, igamma, igam0, icosi, icose, iazim, iline,
+       orientation;
 int    i, ie, je, stokes;
 int    ipoints, iener;
 // the following are needed for cut-off power-law taken from XSPEC
 double ear1[ne + 1], param1[2];
 double photar1[ne];
+float  data_type;
+char   data_type_c[8] = "Stokes";
 //int    irh, ih;
 //char   gg[3], tables1[34]="cold-disk-azimuth-reflection-gamma", 
 //       tables2[5]="-Inc.", tables3[4]="-Azi", cazim[3], ccosi[3],
@@ -340,7 +370,7 @@ if (am >= 0.) rms = 3. + pom1 -sqrt((3. - pom) * (3. + pom + 2. *pom1));
 else rms = 3. + pom1 + sqrt((3. - pom) * (3. + pom + 2. *pom1));
 r_plus = 1. + sqrt(1. - am2);
 // thetaO - observer inclination
-ide_param[1] = param[1];
+ide_param[1] = fabs(param[1]);
 thetaO = ide_param[1];
 cosmuO = cos(thetaO/180.*PI);
 // rin - inner edge of non-zero disc emissivity
@@ -403,10 +433,21 @@ ide_param[14] = 1.;
 // (ide_param[15], ide_param[16])
 // polar - whether we need value of change in polarization angle (0-no,1-yes)
 stokes = (int) param[23];
-if ((stokes < 0.) || (stokes > 7)) {
-  xs_write("kynlpcr: Stokes has to be 0-7", 5);
+if ((stokes < 0.) || (stokes > 10)) {
+  xs_write("kynlpcr: Stokes has to be 0-10", 5);
   for(ie = 0; ie < ne; ie++) photar[ie] = 0.;
   return;  
+}
+if(stokes == -1){
+  data_type = DGFILT(ifl, data_type_c);
+  if (data_type == 0. || data_type == 1. || data_type == 2.){
+    stokes = 1 + (int) data_type;
+  }
+  else {
+    xs_write("kynlpcr: no or wrong information on data type (counts, q, u)", 5);
+    xs_write("kynlpcr: stokes = par20 = 1 (i.e. counts) will be used", 5);
+    stokes=1;
+  }
 }
 polar = 0;
 if (stokes > 0){
@@ -415,10 +456,16 @@ if (stokes > 0){
   chi = param[25]/180.*PI;
 }
 ide_param[17] = polar;
+chi0 = param[26]/180.*PI;
+if (((chi0 < -90.) || (chi0 > 90.)) && polar) {
+  xs_write("kynlpcr: chi0 has to be between -90 and 90 degrees", 5);
+  for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+  return;
+}
 // delay_r and delay_phi are not used
 // (ide_param[18], ide_param[19])
 // number of threads for multithread computations
-ide_param[20] = param[26];
+ide_param[20] = param[27];
 // alpha - position of the cloud in alpha impact parameter (in GM/c^2)
 ide_param[21] = param[14];
 alpha2 = param[14]*param[14];
@@ -787,7 +834,10 @@ if (((am != am_old) || (h_rh != h_rh_old) || (thetaO != thetaO_old) ||
       transf_d[i] = utmp1 * (ttmp1 * y1 + ttmp * y2) + 
                     utmp * (ttmp * y3 + ttmp1 * y4);
 // chid from the axis to the disc
-      if(polar){
+      if(polar && h_rh > 0){
+/* OLD that goes to Newtonian limit too slow
+ * (checked for height 100 and radius 1000 where change in pol. angle was still
+ *  around -72 degrees)
         Uphi = (r-2.) * ( r * U_phi + 2. * am * Ut ) / ( r2 * delta - 4. * am2 );
         pt = ( ( r2 + am2 ) * r + 2. * am2 ) / r / delta;
         ptheta = q_final / r2;
@@ -799,6 +849,18 @@ if (((am != am_old) || (h_rh != h_rh_old) || (thetaO != thetaO_old) ||
                          Fr * cosin[i] * r2 * ( pr_final / tmp1 - Ur ) * ptheta
                          - Fr * ( r * ( cosin[i] / tmp1 * r * ptheta - 1. ) ) * 
                          pr_final - Fphi * cosin[i] * U_phi );
+*/
+       Uphi = (r-2.) * ( r * U_phi + 2. * am * Ut ) / ( r2 * delta - 4. * am2 );
+       U_t  = -(1-2./r)*Ut -2.*am/r*Uphi;
+       q2 = q_final*q_final;
+       kappa2 = sqrt((am2+q2)/(am2+h*h));
+       kappa1 = am*kappa2;
+       kappa2 *= h;
+       f_phi = (am*r*pr_final*kappa2-(r2+am2)*q_final/r*kappa1)/(am2+q2);
+       f_theta=-(am*r*pr_final*kappa1+(r2+am2)*q_final/r*kappa2)/(am2+q2)/pr_final;
+       f_t = (-delta*q_final*f_theta-2*am*r*f_phi)/((r2+am2)*r2+2.*r*am2);
+       chid[i] = atan2(r2/delta*pr_final*(U_t*f_phi-U_phi*f_t)+U_r*f_phi,
+                       r*tmp1*(-f_theta/r-q_final/r/tmp1*(Ut*f_t+Uphi*f_phi)));
       }
     }
   }
@@ -1206,6 +1268,7 @@ fprintf(fw, "Stokes      %12d\n", (int) param[23]);
 fprintf(fw, "polar       %12d\n", polar);
 fprintf(fw, "Poldeg      %12.6f\n", param[24]);
 fprintf(fw, "Polangle    %12.6f\n", param[25]);
+fprintf(fw, "chi0        %12.6f\n", param[26]);
 fprintf(fw, "r_horizon   %12.6f\n", r_plus);
 fprintf(fw, "r_ms        %12.6f\n", rms);
 fprintf(fw, "edivision   %12d\n", (int) ide_param[14]);
@@ -1286,22 +1349,38 @@ FPMSTR(pkyRefl, kyRefl);
 // interface with XSPEC
 if (!stokes) for (ie = 0; ie < ne; ie++) photar[ie] = far[ie];
 else {
+// let's change the angle to opposite due to opposite system rotation
+  if(param[1] >= 0.)orientation=1.;
+  else orientation=-1.;
+// let's change the orientation of the system 
+  if(chi0 != 0.)
+    for( ie=0; ie<ne; ie++ ){
+      qar_final[ie] = qar[ie]*cos(2*chi0)-orientation*uar[ie]*sin(2*chi0);
+      uar_final[ie] = orientation*uar[ie]*cos(2*chi0)+qar[ie]*sin(2*chi0);
+    }
+  else
+    for( ie=0; ie<ne; ie++ ){
+      qar_final[ie] = qar[ie];
+      uar_final[ie] = orientation*uar[ie];
+    }
+
   pamin = 1e30;
   pamax = -1e30;
   pa2min = 1e30;
   pa2max = -1e30;
   for (ie = ne - 1; ie >= 0; ie--) {
-    pd[ie] = sqrt(qar[ie] * qar[ie] + uar[ie] * uar[ie] + var[ie] * var[ie]) /
-             (far[ie] + 1e-30);
-    pa[ie] = 0.5 * atan2(uar[ie], qar[ie]) / PI * 180.;
+    pd[ie] = sqrt(qar_final[ie] * qar_final[ie] + uar_final[ie] * uar_final[ie] 
+                  + var[ie] * var[ie]) / (far[ie] + 1e-99);
+    pa[ie] = 0.5 * atan2(uar_final[ie], qar_final[ie]) / PI * 180.;
     if (ie < (ne - 1)) {
       while ((pa[ie] - pa[ie + 1]) > 90.) pa[ie] -= 180.;
       while ((pa[ie + 1] - pa[ie]) > 90.) pa[ie] += 180.;
     }
     if (pa[ie] < pamin) pamin = pa[ie];
     if (pa[ie] > pamax) pamax = pa[ie];
-    pa2[ie] = 0.5 * asin(var[ie] / sqrt(qar[ie] * qar[ie] + uar[ie] * uar[ie] +
-                                  var[ie] * var[ie] + 1e-30)) / PI * 180.;
+    pa2[ie] = 0.5 * asin(var[ie] / sqrt(qar_final[ie] * qar_final[ie] 
+                         + uar_final[ie] * uar_final[ie] + var[ie] * var[ie] 
+                         + 1e-99)) / PI * 180.;
     if (ie < (ne - 1)) {
       while ((pa2[ie] - pa2[ie + 1]) > 90.) pa2[ie] -= 180.;
       while ((pa2[ie + 1] - pa2[ie]) > 90.) pa2[ie] += 180.;
@@ -1318,16 +1397,20 @@ else {
     fprintf(fw,
       "%E\t%E\t%E\t%E\t%E\t%E\t%E\t%E\n", 
       0.5 * (ear[ie] + ear[ie+1]), far[ie] / (ear[ie+1] - ear[ie]), 
-      qar[ie] / (ear[ie+1] - ear[ie]), uar[ie] / (ear[ie+1] - ear[ie]), 
+      qar_final[ie] / (ear[ie+1] - ear[ie]), 
+      uar_final[ie] / (ear[ie+1] - ear[ie]), 
       var[ie] / (ear[ie+1] - ear[ie]), pd[ie], pa[ie], pa2[ie]);
 //interface with XSPEC..........................................................
-    if (stokes == 1) photar[ie] = far[ie];
-    if (stokes == 2) photar[ie] = qar[ie];
-    if (stokes == 3) photar[ie] = uar[ie];
-    if (stokes == 4) photar[ie] = var[ie];
-    if (stokes == 5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  1) photar[ie] = far[ie];
+    if (stokes ==  2) photar[ie] = qar_final[ie];
+    if (stokes ==  3) photar[ie] = uar_final[ie];
+    if (stokes ==  4) photar[ie] = var[ie];
+    if (stokes ==  5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  8) photar[ie] = qar_final[ie] / (far[ie]+1e-99) * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  9) photar[ie] = uar_final[ie] / (far[ie]+1e-99) * (ear[ie + 1] - ear[ie]);
+    if (stokes == 10) photar[ie] = var[ie] / (far[ie]+1e-99) * (ear[ie + 1] - ear[ie]);
   }
   fclose(fw);
 }
@@ -1655,5 +1738,15 @@ else {
       var_loc[ie] = 0.;
     }
 }
+/*******************************************************************************
+// local spectrum output -- write energy1[] and far_local[] into file
+{
+  FILE *fw;
+  fw = fopen("kynlpcr_photar_loc.dat", "w");
+  for (ie = 0; ie < ne_loc; ie++)
+    fprintf(fw, "%14.6f\t%E\n", energy[ie], far_loc[ie]);
+  fclose(fw);
+}
+*******************************************************************************/
 return;
 }

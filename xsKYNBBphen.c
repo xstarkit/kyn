@@ -65,7 +65,7 @@
  *                    edge)
  * par5  ... rout  - outer edge of non-zero disc emissivity (in GM/c^2 or in 
  *                   r_mso)
- *                 - if outer edge is equal or larger than 1000 GM/c^2 then 
+ *                 - if outer edge is equal or larger than 100000 GM/c^2 then 
  *                   the emission from above this radius is added
  * par6  ... phi   - lower azimuth of non-zero disc emissivity (deg)
  * par7  ... dphi  - (phi + dphi) is upper azimuth of non-zero disc emissivity
@@ -98,21 +98,24 @@
  *                           "Stokes:1" means Stokes parameter Q devided by 
  *                           energy and "Stokes:2" means Stokes parameter U 
  *                           devided by energy
- *                    = 0 - array of photon number density flux per bin
- *                         (array of Stokes parameter I devided by energy)
- *                          with the polarisation computations switched off
- *                    = 1 - array of photon number density flux per bin
- *                         (array of Stokes parameter I devided by energy),
- *                          here, the polarisation computations are switched on
- *                          and different approximation for computed flux is 
- *                          used with non-isotropic emission directionality
- *                    = 2 - array of Stokes parameter Q devided by energy
- *                    = 3 - array of Stokes parameter U devided by energy
- *                    = 4 - array of Stokes parameter V devided by energy
- *                    = 5 - array of degree of polarization
- *                    = 6 - array of polarization angle psi=0.5*atan(U/Q)
- *                    = 7 - array of "Stokes" angle
- *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
+ *                    =  0 - array of photon number density flux per bin
+ *                          (array of Stokes parameter I devided by energy)
+ *                           with the polarisation computations switched off
+ *                    =  1 - array of photon number density flux per bin
+ *                          (array of Stokes parameter I devided by energy),
+ *                           here, the polarisation computations are switched on
+ *                           and different approximation for computed flux is 
+ *                           used with non-isotropic emission directionality
+ *                    =  2 - array of Stokes parameter Q devided by energy
+ *                    =  3 - array of Stokes parameter U devided by energy
+ *                    =  4 - array of Stokes parameter V devided by energy
+ *                    =  5 - array of degree of polarization
+ *                    =  6 - array of polarization angle psi=0.5*atan(U/Q)
+ *                    =  7 - array of "Stokes" angle
+ *                           beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
+ *                    =  8 - array of Stokes parameter Q devided by I
+ *                    =  9 - array of Stokes parameter U devided by I
+ *                    = 10 - array of Stokes parameter V devided by I
  * par20 ... chi0     - orientation of the system (-90 < chi0 < 90), 
  *                      the orientation angle (in degrees) of the system 
  *                      rotation axis with direction up, this angle is added to 
@@ -206,8 +209,8 @@ return(0);
 
 /* Let's declare variables that are common for the main and emissivity 
    subroutines */
-static double   *ener_loc, *flx;
-static float    *tau, *cose, *I_loc, *Q_loc;;
+static double   *ener_loc, *flx, *I_loc, *Q_loc;
+static float    *tau, *cose;
 static double   Tin, BBindex, theta_o, rin, rout, tau0;
 static int      polar;
 static long int ntau, ncose;
@@ -221,7 +224,9 @@ static double I_r0[NCOSE0] = {0.23147,0.25877,0.28150,0.30299,0.32381,0.34420,
                               0.48165,0.50092,0.52013,0.53930,0.55844,0.57754,
                               0.59661,0.61566,0.63469};
 
-extern int xs_write(char* wrtstr, int idest);
+extern char* FGMODF(void);
+extern char* FGMSTR(char* dname);
+extern int   xs_write(char* wrtstr, int idest);
 extern float DGFILT(int ifl, const char* key);
 
 void KYNBBphen(const double *ear, int ne, const double *param, int ifl, 
@@ -259,6 +264,7 @@ double am, am2, pom, pom1, pom2, pom3, rms, r_plus, chi0;
 int    ne_loc, stokes, ie, irow, imin, imax, i0, itau0, orientation, iparam;
 float  data_type;
 char   data_type_c[8] = "Stokes";
+int    outerdisc = 0;
 
 // these are needed to work with a fits file...
 fitsfile *fptr;
@@ -292,8 +298,8 @@ ne_old = ne;
 
 // polar - whether we need value of change in polarization angle (0-no,1-yes)
 stokes = (int) param[18];
-if ((stokes < -1) || (stokes > 7)) {
-  xs_write("kynphebb: Stokes has to be -1, 0-7", 5);
+if ((stokes < -1) || (stokes > 10)) {
+  xs_write("kynphebb: Stokes has to be -1, 0-10", 5);
   for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
   return;
 }
@@ -371,7 +377,21 @@ if( param[3] == 1. ){
 }
 if(rin  < r_plus) rin  = r_plus;
 if(rout < r_plus) rout = r_plus;
-if( rout > ROUTMAX ) rout = ROUTMAX;
+//if rout >= 100*ROUTMAX than we assume rout to be infinity
+//we then re-define it to ROUTMAX (or rin if rin>ROUTMAX)
+//and compute the flux above ROUTMAX with outer_disc subroutine
+if( rout >= 100*ROUTMAX ){
+  rout = ROUTMAX;
+  outerdisc = 1;
+  if( param[3] == 1 || param[3] == 0 ){
+    if(rout < param[2]) rout = param[2];
+    ide_param[4] = rout;
+  }
+  else if( param[3] == 2 ){
+    if(rout < param[2] * rms) rout = param[2] * rms;
+    ide_param[4] = rout / rms;    
+  }
+}
 // phi - lower azimuth of non-zero disc emissivity (deg)
 ide_param[5] = param[5];
 // dphi - (phi+dphi) is upper azimuth of non-zero disc emissivity (deg)
@@ -481,7 +501,7 @@ fclose(fw);
 ******************************************************************************/
 
 /******************************************************************************/
-if ( polar & polar_old == -1 ){
+if ( polar && polar_old == -1 ){
 // Let's read the local polarisation tables
 // The status parameter must always be initialized.
   status = 0;
@@ -623,15 +643,15 @@ if (ide(ear, ne, 1, far, qar, uar, var, ide_param, emis_BBphen, ne_loc)) {
   for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
   return;
 }
-if( rout == ROUTMAX ) outer_disc_phen(ear, ne, flux_out);
+if( outerdisc ) outer_disc_phen(ear, ne, flux_out);
 
 // interface with XSPEC
 // final spectrum output -- write ear[] and photar[] into file:
 if (!stokes){
-  if( rout == ROUTMAX )
+  if( outerdisc )
     for (ie = 0; ie < ne; ie++) far[ie] += flux_out[ie];
 } else {
-  if( rout == ROUTMAX ){
+  if( outerdisc ){
     cose0 = cos( theta_o / 180. * PI );
     if( tau0 <= tau[ntau - 1] ){
 // Rene's tables
@@ -704,7 +724,7 @@ if (!stokes){
   pa2max = -1e30;
   for (ie = ne - 1; ie >= 0; ie--) {
     pd[ie] = sqrt(qar_final[ie] * qar_final[ie] + uar_final[ie] * uar_final[ie] 
-                  + var[ie] * var[ie]) / (far[ie] + 1e-30);
+                  + var[ie] * var[ie]) / (far[ie] + 1e-99);
     pa[ie] = 0.5 * atan2(uar_final[ie], qar_final[ie]) / PI * 180.;
     if (ie < (ne - 1)) {
       while ((pa[ie] - pa[ie + 1]) > 90.) pa[ie] -= 180.;
@@ -714,7 +734,7 @@ if (!stokes){
     if (pa[ie] > pamax) pamax = pa[ie];
     pa2[ie] = 0.5 * asin(var[ie] / sqrt(qar_final[ie] * qar_final[ie] 
                          + uar_final[ie] * uar_final[ie] + var[ie] * var[ie] 
-                         + 1e-30)) / PI * 180.;
+                         + 1e-99)) / PI * 180.;
     if (ie < (ne - 1)) {
       while ((pa2[ie] - pa2[ie + 1]) > 90.) pa2[ie] -= 180.;
       while ((pa2[ie + 1] - pa2[ie]) > 90.) pa2[ie] += 180.;
@@ -735,13 +755,16 @@ if (!stokes){
       uar_final[ie] / (ear[ie+1] - ear[ie]), 
       var[ie] / (ear[ie+1] - ear[ie]), pd[ie], pa[ie], pa2[ie]);
 //interface with XSPEC..........................................................
-    if (stokes == 1) photar[ie] = far[ie];
-    if (stokes == 2) photar[ie] = qar_final[ie];
-    if (stokes == 3) photar[ie] = uar_final[ie];
-    if (stokes == 4) photar[ie] = var[ie];
-    if (stokes == 5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  1) photar[ie] = far[ie];
+    if (stokes ==  2) photar[ie] = qar_final[ie];
+    if (stokes ==  3) photar[ie] = uar_final[ie];
+    if (stokes ==  4) photar[ie] = var[ie];
+    if (stokes ==  5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  8) photar[ie] = qar_final[ie] / (far[ie]+1e-99) * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  9) photar[ie] = uar_final[ie] / (far[ie]+1e-99) * (ear[ie + 1] - ear[ie]);
+    if (stokes == 10) photar[ie] = var[ie] / (far[ie]+1e-99) * (ear[ie + 1] - ear[ie]);
   }
   fclose(fw);
 }
@@ -750,7 +773,7 @@ if (!stokes){
 #ifdef OUTSIDE_XSPEC
 // final spectrum output -- write ear[] and photar[] into file:
 fw = fopen("kynphebb_photar.dat", "w");
-if( rout == ROUTMAX )
+if( outerdisc )
   for (ie = 0; ie < ne; ie++) {
     fprintf(fw, "%14.6f\t%E\t%E\t%E\n", 0.5 * (ear[ie] + ear[ie+1]),
       photar[ie] / (ear[ie + 1] - ear[ie]),

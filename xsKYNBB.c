@@ -65,14 +65,14 @@
  *                    edge)
  * par5  ... rout  - outer edge of non-zero disc emissivity (in GM/c^2 or in 
  *                   r_mso)
- *                 - if outer edge is equal or larger than 1000 GM/c^2 then 
+ *                 - if outer edge is equal or larger than 100000 GM/c^2 then 
  *                   the emission from above this radius is added
  * par6  ... phi   - lower azimuth of non-zero disc emissivity (deg)
  * par7  ... dphi  - (phi + dphi) is upper azimuth of non-zero disc emissivity
  *                   0 <= dphi <= 360  (deg)
  * par8  ... BHmass  - the black hole mass in units of Solar mass
- * par9  ... arate  - accretion rate in units of Solar mass per Julian year
- *                    (365.25days)
+ * par9  ... arate  - accretion rate in units of Ledd if positive or in 
+ *                    Solar mass per Julian year (365.25days) if negative
  * par10 ... f_col  - spectral hardening factor
  * par11 ... alpha  - position of the cloud centre in GM/c^2 in alpha coordinate
  *                    (alpha being the impact parameter in phi direction, 
@@ -99,21 +99,24 @@
  *                           "Stokes:1" means Stokes parameter Q devided by 
  *                           energy and "Stokes:2" means Stokes parameter U 
  *                           devided by energy
- *                    = 0 - array of photon number density flux per bin
- *                         (array of Stokes parameter I devided by energy)
- *                          with the polarisation computations switched off
- *                    = 1 - array of photon number density flux per bin
- *                         (array of Stokes parameter I devided by energy),
- *                          here, the polarisation computations are switched on
- *                          and different approximation for computed flux is 
- *                          used with non-isotropic emission directionality
- *                    = 2 - array of Stokes parameter Q devided by energy
- *                    = 3 - array of Stokes parameter U devided by energy
- *                    = 4 - array of Stokes parameter V devided by energy
- *                    = 5 - array of degree of polarization
- *                    = 6 - array of polarization angle psi=0.5*atan(U/Q)
- *                    = 7 - array of "Stokes" angle
- *                          beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
+ *                    =  0 - array of photon number density flux per bin
+ *                          (array of Stokes parameter I devided by energy)
+ *                           with the polarisation computations switched off
+ *                    =  1 - array of photon number density flux per bin
+ *                          (array of Stokes parameter I devided by energy),
+ *                           here, the polarisation computations are switched on
+ *                           and different approximation for computed flux is 
+ *                           used with non-isotropic emission directionality
+ *                    =  2 - array of Stokes parameter Q devided by energy
+ *                    =  3 - array of Stokes parameter U devided by energy
+ *                    =  4 - array of Stokes parameter V devided by energy
+ *                    =  5 - array of degree of polarization
+ *                    =  6 - array of polarization angle psi=0.5*atan(U/Q)
+ *                    =  7 - array of "Stokes" angle
+ *                           beta=0.5*asin(V/sqrt(Q*Q+U*U+V*V))
+ *                    =  8 - array of Stokes parameter Q devided by I
+ *                    =  9 - array of Stokes parameter U devided by I
+ *                    = 10 - array of Stokes parameter V devided by I
  * par21 ... chi0     - orientation of the system (-90 < chi0 < 90), 
  *                      the orientation angle (in degrees) of the system 
  *                      rotation axis with direction up, this angle is added to 
@@ -166,7 +169,7 @@ param[ 4] = 1000.;       // rout
 param[ 5] = 0.;         // phi
 param[ 6] = 360.;       // dphi
 param[ 7] = 3.;         // BHmass
-param[ 8] = 1.e-9;       // arate
+param[ 8] = -1.e-9;     // arate
 param[ 9] = 1.7;        // f_col
 param[10] = -3.;        // alpha
 param[11] = 0.;         // beta
@@ -205,15 +208,15 @@ return(0);
 #define G      6.6743e-11
 #define SIGMA  5.6704e-8
 #define YEAR   31557600.0
-// the "kpc" below is 10kpc in cm
-#define KPC    3.0857e+22
+#define KPC    3.0857e+22 // 10kpc in cm
+#define LEDD   1.26e31    // in W
 #define NCOSE0 21
 #define ROUTMAX 1000.
 
 /* Let's declare variables that are common for the main and emissivity 
    subroutines */
-static double   *ener_loc, *flx;
-static float    *tau, *cose, *I_loc, *Q_loc;
+static double   *ener_loc, *flx, *I_loc, *Q_loc;
+static float    *tau, *cose;
 static double   am, x0 , x1, x2, x3;
 static double   arate, BHmass, f_col, rout, Tout, Tnorm, theta_o, tau0;
 static int      polar;
@@ -228,7 +231,9 @@ static double I_r0[NCOSE0] = {0.23147,0.25877,0.28150,0.30299,0.32381,0.34420,
                               0.48165,0.50092,0.52013,0.53930,0.55844,0.57754,
                               0.59661,0.61566,0.63469};
 
-extern int xs_write(char* wrtstr, int idest);
+extern char* FGMODF(void);
+extern char* FGMSTR(char* dname);
+extern int   xs_write(char* wrtstr, int idest);
 extern float DGFILT(int ifl, const char* key);
 
 void KYNBB(const double *ear, int ne, const double *param, int ifl, 
@@ -248,8 +253,8 @@ void emis_BB(double** ear_loc, const int ne_loc, const int nt,
 
 void outer_disc(const double *ear, const int ne, double *flux);
 
-/* Let's declare static variables whose values should be remembered for next
-   run in XSPEC */
+/* Let's declare static variables whose values should be remembered for the next
+   run in the XSPEC */
 static char   kydir[255] = "";
 static char   pname[128] = "KYDIR";
 static int    polar_old = -1, param_unchanged = -1, ne_old = -1;
@@ -262,10 +267,12 @@ double ide_param[25], flux_out[ne + 1], qar_final[ne], uar_final[ne],
        pd[ne], pa[ne], pa2[ne];
 double I_l, I_r, Q_l, cose0, ttmp, ttmp1, y1, y2;
 double pamin, pamax, pa2min, pa2max;
-double am2, pom, pom1, pom2, pom3, rms, r_plus, x, Ccal, Lcal, arcosa3, chi0;
+double am2, pom, pom1, pom2, pom3, rms, r_plus, x, Ccal, Lcal, arcosa3, Ut_rms,
+       chi0;
 int    ne_loc, stokes, ie, irow, imin, imax, i0, itau0, orientation, iparam;
 float  data_type;
 char   data_type_c[8] = "Stokes";
+int    outerdisc = 0;
 
 // these are needed to work with a fits file...
 fitsfile *fptr;
@@ -278,7 +285,7 @@ int      nelements;
 int      itau, icose, anynul, status = 0;//, maxdim=1000, naxis;
 
 // Free memory for far, qar, uar and var if they has already been created and
-// if their dimensions has changed...
+// if their dimensions have changed...
 if( ne_old != -1 && ne != ne_old ){
   free((void *) far); far = NULL;
   free((void *) qar); qar = NULL;
@@ -299,8 +306,8 @@ ne_old = ne;
 
 // polar - whether we need value of change in polarization angle (0-no,1-yes)
 stokes = (int) param[19];
-if ((stokes < -1) || (stokes > 7)) {
-  xs_write("kynbb: Stokes has to be -1, 0-7", 5);
+if ((stokes < -1) || (stokes > 10)) {
+  xs_write("kynbb: Stokes has to be -1, 0-10", 5);
   for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
   return;
 }
@@ -372,7 +379,21 @@ ide_param[4] = param[4];
 if( param[3] == 1 || param[3] == 0 ) rout = param[4];
 else if( param[3] == 2 ) rout = param[4] * rms;
 else rout=0.;
-if( rout > ROUTMAX ) rout = ROUTMAX;
+//if rout >= 100*ROUTMAX than we assume rout to be infinity
+//we then re-define it to ROUTMAX (or rin if rin>ROUTMAX)
+//and compute the flux above ROUTMAX with outer_disc subroutine
+if( rout >= 100*ROUTMAX ){
+  rout = ROUTMAX;
+  outerdisc = 1;
+  if( param[3] == 1 || param[3] == 0 ){
+    if(rout < param[2]) rout = param[2];
+    ide_param[4] = rout;
+  }
+  else if( param[3] == 2 ){
+    if(rout < param[2] * rms) rout = param[2] * rms;
+    ide_param[4] = rout / rms;    
+  }
+}
 // phi - lower azimuth of non-zero disc emissivity (deg)
 ide_param[5] = param[5];
 // dphi - (phi+dphi) is upper azimuth of non-zero disc emissivity (deg)
@@ -389,8 +410,15 @@ ide_param[10] = param[18];
 ide_param[11] = -1.;
 // BHmass - the black hole mass in Msolar
 BHmass = param[7];
-// arate - accretion rate in units of 1 solar mass per Julian year (365.25days)
-arate = param[8];
+// arate - accretion rate
+Ut_rms = ( 4 * ( sqrt(rms) - am ) + am ) / sqrt(3.) / rms;
+if(param[8] < 0.){
+  arate = fabs(param[8]);
+//  Lbol = arate / (LEDD*BHmass/MSOLAR*YEAR/C_MS/C_MS/(1-Ut_rms));
+}else{
+  arate = param[8]*LEDD*BHmass/MSOLAR*YEAR/C_MS/C_MS/(1-Ut_rms);
+//  Lbol = param[8];
+}
 // f_col - spectral hardening factor
 f_col = param[9];
 // zshift - overall Doppler shift
@@ -445,7 +473,7 @@ fprintf(fw, "a/M          %12.6f\n", param[0]);
 fprintf(fw, "theta_o      %12.6f\n", param[1]);
 fprintf(fw, "rin          %12.6f\n", param[2]);
 fprintf(fw, "ms           %12d\n", (int) param[3]);
-fprintf(fw, "rout         %12.6f\n", param[4]);
+fprintf(fw, "rout         %12.6f\n", rout);
 fprintf(fw, "phi          %12.6f\n", param[5]);
 fprintf(fw, "dphi         %12.6f\n", param[6]);
 fprintf(fw, "BBmass       %12.6f\n", param[7]);
@@ -504,7 +532,7 @@ fclose(fw);
 ******************************************************************************/
 
 /******************************************************************************/
-if ( polar & polar_old == -1 ){
+if ( polar && polar_old == -1 ){
 // Let's read the local polarisation tables
 // The status parameter must always be initialized.
   status = 0;
@@ -515,7 +543,7 @@ if ( polar & polar_old == -1 ){
   if (strlen(kydir) == 0) sprintf(tables_file, "./%s", GOOSMANN);
   else if (kydir[strlen(kydir) - 1] == '/') sprintf(tables_file, "%s%s",
                                                     kydir, GOOSMANN);
-  else sprintf(tables_file, "%s/%s", kydir, GOOSMANN);
+  else sprintf(tables_file, "%s/%s", kydir, GOOSMANN);  
 // Let's read the 'goosmann.fits' file
 // The status parameter must always be initialized.
   status = 0;
@@ -617,7 +645,6 @@ if ( polar & polar_old == -1 ){
   polar_old = polar;
 }
 /******************************************************************************/
-
 // given tau0, find the corresponding index in tau[] and compute I and Q:
 if(polar && tau0 <= tau[ntau - 1]){
   imin = 0;
@@ -646,18 +673,16 @@ if (ide(ear, ne, 1, far, qar, uar, var, ide_param, emis_BB, ne_loc)) {
   for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
   return;
 }
-if( rout == ROUTMAX ) outer_disc(ear, ne, flux_out);
 
 // interface with XSPEC
 // final spectrum output -- write ear[] and photar[] into file:
-if (!stokes){
-  if( rout == ROUTMAX ) 
-    for (ie = 0; ie < ne; ie++) far[ie] += flux_out[ie];
-} else {
-  if( rout == ROUTMAX ){
+if( outerdisc ){
+  outer_disc(ear, ne, flux_out);
+  if (!stokes) for (ie = 0; ie < ne; ie++) far[ie] += flux_out[ie];
+  else {
     cose0 = cos( theta_o / 180. * PI );
     if( tau0 <= tau[ntau - 1] ){
-// Rene's tables
+//   Rene's tables
       imin = 1;
       imax = ncose;
       i0 = ( 1 + ncose) / 2;
@@ -677,7 +702,7 @@ if (!stokes){
         qar[ie] += Q_l * flux_out[ie];
       }
     } else{
-// Chandrasekhar's formulae
+//   Chandrasekhar's formulae
       imin =  0;
       imax = 20;
       i0   = 10;
@@ -686,15 +711,15 @@ if (!stokes){
        else imax = i0;
        i0 = ( imin + imax ) / 2;
       }
-// let's interpolate the I_l and I_r between cos(theta_o)
+//    let's interpolate the I_l and I_r between cos(theta_o)
       I_l = ( I_l0[imin+1] - I_l0[imin] ) / 0.05 * ( cose0 - imin * 0.05 ) +
               I_l0[imin];
       I_r = ( I_r0[imin+1] - I_r0[imin] ) / 0.05 * ( cose0 - imin * 0.05 ) +
               I_r0[imin];
       for( ie=0; ie<ne; ie++ ){
-/* model with Rayleigh scattering according to the Chandrasekhar table XXIV
-   overall flux integrated in emission angles (eq.96 in 68.6 chapter X in 
-   Chandrasekhar) */
+/*     model with Rayleigh scattering according to the Chandrasekhar table XXIV
+       overall flux integrated in emission angles (eq.96 in 68.6 chapter X in 
+       Chandrasekhar) */
         far[ie] += ( I_l + I_r ) * flux_out[ie];
         qar[ie] += ( I_l - I_r ) * flux_out[ie];
       }
@@ -727,7 +752,7 @@ if (!stokes){
   pa2max = -1e30;
   for (ie = ne - 1; ie >= 0; ie--) {
     pd[ie] = sqrt(qar_final[ie] * qar_final[ie] + uar_final[ie] * uar_final[ie] 
-                  + var[ie] * var[ie]) / (far[ie] + 1e-30);
+                  + var[ie] * var[ie]) / (far[ie] + 1e-99);
     pa[ie] = 0.5 * atan2(uar_final[ie], qar_final[ie]) / PI * 180.;
     if (ie < (ne - 1)) {
       while ((pa[ie] - pa[ie + 1]) > 90.) pa[ie] -= 180.;
@@ -737,7 +762,7 @@ if (!stokes){
     if (pa[ie] > pamax) pamax = pa[ie];
     pa2[ie] = 0.5 * asin(var[ie] / sqrt(qar_final[ie] * qar_final[ie] 
                          + uar_final[ie] * uar_final[ie] + var[ie] * var[ie] 
-                         + 1e-30)) / PI * 180.;
+                         + 1e-99)) / PI * 180.;
     if (ie < (ne - 1)) {
       while ((pa2[ie] - pa2[ie + 1]) > 90.) pa2[ie] -= 180.;
       while ((pa2[ie + 1] - pa2[ie]) > 90.) pa2[ie] += 180.;
@@ -758,13 +783,16 @@ if (!stokes){
       uar_final[ie] / (ear[ie+1] - ear[ie]), 
       var[ie] / (ear[ie+1] - ear[ie]), pd[ie], pa[ie], pa2[ie]);
 //interface with XSPEC..........................................................
-    if (stokes == 1) photar[ie] = far[ie];
-    if (stokes == 2) photar[ie] = qar_final[ie];
-    if (stokes == 3) photar[ie] = uar_final[ie];
-    if (stokes == 4) photar[ie] = var[ie];
-    if (stokes == 5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
-    if (stokes == 7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  1) photar[ie] = far[ie];
+    if (stokes ==  2) photar[ie] = qar_final[ie];
+    if (stokes ==  3) photar[ie] = uar_final[ie];
+    if (stokes ==  4) photar[ie] = var[ie];
+    if (stokes ==  5) photar[ie] = pd[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  6) photar[ie] = pa[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  7) photar[ie] = pa2[ie] * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  8) photar[ie] = qar_final[ie] / (far[ie]+1e-99) * (ear[ie + 1] - ear[ie]);
+    if (stokes ==  9) photar[ie] = uar_final[ie] / (far[ie]+1e-99) * (ear[ie + 1] - ear[ie]);
+    if (stokes == 10) photar[ie] = var[ie] / (far[ie]+1e-99) * (ear[ie + 1] - ear[ie]);
   }
   fclose(fw);
 }
@@ -773,7 +801,7 @@ if (!stokes){
 #ifdef OUTSIDE_XSPEC
 // final spectrum output -- write ear[] and photar[] into file:
 fw = fopen("kynbb_photar.dat", "w");
-if( rout == ROUTMAX )
+if( outerdisc )
   for (ie = 0; ie < ne; ie++) {
     fprintf(fw, "%14.6f\t%E\t%E\t%E\n", 0.5 * (ear[ie] + ear[ie+1]),
       photar[ie] / (ear[ie + 1] - ear[ie]),
@@ -781,7 +809,7 @@ if( rout == ROUTMAX )
   }
 else
   for (ie = 0; ie < ne; ie++) {
-    fprintf(fw, "%14.6f\t%E\t%E\t%E\n", 0.5 * (ear[ie] + ear[ie+1]),
+    fprintf(fw, "%14.6f\t%E\n", 0.5 * (ear[ie] + ear[ie+1]),
       photar[ie] / (ear[ie + 1] - ear[ie]));
   }
 fclose(fw);

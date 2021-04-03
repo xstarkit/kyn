@@ -608,7 +608,7 @@ if(rin<r_vec[0]){
 }
 if(rout>(r_vec[nr-1]+1e-6)){
   xs_write("ide: r out of range covered by data tables",5);
-  rout=r_vec[nr-1];
+//  rout=r_vec[nr-1];
 }
 // let's check whether the step in phi is not too small
 dphi=(phi1-phi0)/((double) nphi);
@@ -1375,7 +1375,8 @@ for(iph=0;iph<nph;iph++){
     l=alpha*sin(thetaOO/180.*PI);
     q2=beta*beta+cos(thetaOO/180.*PI)*cos(thetaOO/180.*PI)*(alpha*alpha-am2);
     p_r=rnow2/delta*pr;
-    p_th=-sqrt(fabs(q2));
+    if(q2<0.)q2=0.;
+    p_th=-sqrt(q2);
 //   Keplerian velocity U^\mu
     if(rnow>rms){
       sqr=fabs(rnow2-3.*rnow+2.*am*sqrt(rnow));
@@ -1395,7 +1396,8 @@ for(iph=0;iph<nph;iph++){
 //redshift factor:
     gfac=1./(Ut-p_r*Ur-l*Uph);
 //cosine
-    cosine=-gfac*p_th/rnow;
+    cosine=-gfac*p_th/rnow;    
+    if(cosine>1.)cosine=1.;
 
     AA=(rnow2+am2)*(rnow2+am2)-am2*delta;
     pt=(AA-2.*am*rnow*l)/(delta*rnow2);
@@ -1545,6 +1547,8 @@ double g[4], g1[4], g2[4], g12[4];
 double dfc, drad, dphi, radratio, radrat, facnorm, fact, dener, ddener;
 double xlow, xhigh, dshift;
 double ttmp, ttmp1, utmp, utmp1, y1, y2, y3, y4, dr2;
+double rnow2, delta, ll, q2, Rsgn, pr, p_r, p_th, sqr, Ut, Ur, Uph, sqr_ms, Ems, 
+       Lms, AA, pt, pph;//, pth, ft, fr, fth, fph, kappa1, kappa2;
 int    imin, imax, ir0, iphi0, iiloop, ir, iphi, it, k, l, iimax, ii;
 int    ilow, ihigh, ishiftt;
       
@@ -1577,108 +1581,141 @@ while(iiloop<(iloop+nloops) && iiloop<=(nrad*nphi)){
     iiloop+=1;
     continue;
   }
-  imin=0;
-  imax=nr;
-  ir0=nr/2;
-  while((imax-imin)>1){
-    if(rnow_rplus>=r_vec[ir0-1])imin=ir0;
-    else imax=ir0;
-    ir0=(imin+imax)/2;
-  }
-  if(imax==nr && rnow_rplus>r_vec[nr-1])ir0=nr;
-//... we must convert phi from Boyer-Lindquist coordinate to the Kerr coordinate
-  if(fabs(am)==1.)pnow_kerr = pnow + am/(rnow-1.);
-  else pnow_kerr = pnow - am/(r_plus-r_minus)*log(rnow_rplus/(rnow-r_minus));
-//phi in the data tables is >= 0 and <= 2*PI
-//...let's modify pnow_kerr so that it lies in this range
-  if(am<0.)pnow_kerr=PI-pnow_kerr;
-  pnow_kerr = fmod(pnow_kerr,PI2);
-  if(pnow_kerr<0.)pnow_kerr+=PI2;
-  imin=0;
-  imax=nph;
-  iphi0=nph/2;
-  while((imax-imin)>1){
-    if(pnow_kerr>=phi_vec[iphi0-1])imin=iphi0;
-    else imax=iphi0;
-    iphi0=(imin+imax)/2;
-  }
-  if(imax==nph && pnow_kerr>phi_vec[nph-1])iphi0=nph;
-//let's interpolate the values in dc() table to desired (rnow,pnow):
-  ttmp=(rnow_rplus-r_vec[ir0-1])/(r_vec[ir0]-r_vec[ir0-1]);
-  utmp=(pnow_kerr-phi_vec[iphi0-1])/(phi_vec[iphi0]-phi_vec[iphi0-1]);
-  ttmp1=1.-ttmp;
-  utmp1=1.-utmp;
-//time delay factor (not used for a stationary problem):
-  if((nt>1) && (column[3]==1)){
-    y1=dc[ir0-1+nr*(iphi0-1)];
-    y2=dc[ir0+nr*(iphi0-1)];
-    y3=dc[ir0+nr*iphi0];
-    y4=dc[ir0-1+nr*iphi0];
-    delay=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4);
-  }
-  if((nt>1) && (column[3]==0))delay=-rnow*sin(pnow)*sin(thetaO/180.*PI);
-//redshift factor:
-//if(column[1]==1){
-/* //  bilinear interpolation
-    y1=dc[ir0-1+nr*(iphi0-1)+nr*nph];
-    y2=dc[ir0+nr*(iphi0-1)+nr*nph];
-    y3=dc[ir0+nr*iphi0+nr*nph];
-    y4=dc[ir0-1+nr*iphi0+nr*nph];
-    gfac=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4)
-*/
-//  bicubic interpolation
-    g[0]=dc[ir0-1+nr*(iphi0-1)+nr*nph];
-    g[1]=dc[ir0+nr*(iphi0-1)+nr*nph];
-    g[2]=dc[ir0+nr*iphi0+nr*nph];
-    g[3]=dc[ir0-1+nr*iphi0+nr*nph];
-    g1[0]=dc[ir0-1+nr*(iphi0-1)+nr*nph*6];
-    g1[1]=dc[ir0+nr*(iphi0-1)+nr*nph*6];
-    g1[2]=dc[ir0+nr*iphi0+nr*nph*6];
-    g1[3]=dc[ir0-1+nr*iphi0+nr*nph*6];
-    g2[0]=dc[ir0-1+nr*(iphi0-1)+nr*nph*7];
-    g2[1]=dc[ir0+nr*(iphi0-1)+nr*nph*7];
-    g2[2]=dc[ir0+nr*iphi0+nr*nph*7];
-    g2[3]=dc[ir0-1+nr*iphi0+nr*nph*7];
-    g12[0]=dc[ir0-1+nr*(iphi0-1)+nr*nph*8];
-    g12[1]=dc[ir0+nr*(iphi0-1)+nr*nph*8];
-    g12[2]=dc[ir0+nr*iphi0+nr*nph*8];
-    g12[3]=dc[ir0-1+nr*iphi0+nr*nph*8];
-    bcuint(g, g1, g2, g12, r_vec[ir0-1], r_vec[ir0], phi_vec[iphi0-1],
-                phi_vec[iphi0], rnow_rplus, pnow_kerr, &gfac);
-//}else gfac=sqrt(rnow-1.)/(sqrt(rnow)-cos(pnow)*sin(thetaO/180.*PI));
-  if(gfac < 0.)gfac=0.;
-  gfac=zzshift*gfac;
-//cosine
-  y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*2];
-  y2=dc[ir0+nr*(iphi0-1)+nr*nph*2];
-  y3=dc[ir0+nr*iphi0+nr*nph*2];
-  y4=dc[ir0-1+nr*iphi0+nr*nph*2];
-  cosine=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4);
-//  cosine=cos(thetaO/180.*PI)*sqrt(rnow-1.)/
-//         (sqrt(rnow)-cos(pnow)*sin(thetaO/180.*PI))
-//light lensing amplification:
-  if(column[2]==1 && column[4]==1){
-    y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*2]*dc[ir0-1+nr*(iphi0-1)+nr*nph*3];
-    y2=dc[ir0+nr*(iphi0-1)+nr*nph*2]*dc[ir0+nr*(iphi0-1)+nr*nph*3];
-    y3=dc[ir0+nr*iphi0+nr*nph*2]*dc[ir0+nr*iphi0+nr*nph*3];
-    y4=dc[ir0-1+nr*iphi0+nr*nph*2]*dc[ir0-1+nr*iphi0+nr*nph*3];
-    transf=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4);
-  }else transf=cosine;
-/*
-  if(column[4]==1){
-    y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*3];
-    y2=dc[ir0+nr*(iphi0-1)+nr*nph*3];
-    y3=dc[ir0+nr*iphi0+nr*nph*3];
-    y4=dc[ir0-1+nr*iphi0+nr*nph*3];
-    transf=(utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4))*cosine
-  }else transf=cosine;
-*/
-//change in polarization angle:
-  if(polar){
-    y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*4];
-    y2=dc[ir0+nr*(iphi0-1)+nr*nph*4];
-    y3=dc[ir0+nr*iphi0+nr*nph*4];
-    y4=dc[ir0-1+nr*iphi0+nr*nph*4];
+  if(rnow_rplus<=r_vec[nr-1]){
+    imin=0;
+    imax=nr;
+    ir0=nr/2;
+    while((imax-imin)>1){
+      if(rnow_rplus>=r_vec[ir0-1])imin=ir0;
+      else imax=ir0;
+      ir0=(imin+imax)/2;
+    }
+    if(imax==nr && rnow_rplus>r_vec[nr-1])ir0=nr;
+//  ... we must convert phi from Boyer-Lindquist coordinate to the Kerr coordinate
+    if(fabs(am)==1.)pnow_kerr = pnow + am/(rnow-1.);
+    else pnow_kerr = pnow - am/(r_plus-r_minus)*log(rnow_rplus/(rnow-r_minus));
+//  phi in the data tables is >= 0 and <= 2*PI
+//  ...let's modify pnow_kerr so that it lies in this range
+    if(am<0.)pnow_kerr=PI-pnow_kerr;
+    pnow_kerr = fmod(pnow_kerr,PI2);
+    if(pnow_kerr<0.)pnow_kerr+=PI2;
+    imin=0;
+    imax=nph;
+    iphi0=nph/2;
+    while((imax-imin)>1){
+      if(pnow_kerr>=phi_vec[iphi0-1])imin=iphi0;
+      else imax=iphi0;
+      iphi0=(imin+imax)/2;
+    }
+    if(imax==nph && pnow_kerr>phi_vec[nph-1])iphi0=nph;
+//  let's interpolate the values in dc() table to desired (rnow,pnow):
+    ttmp=(rnow_rplus-r_vec[ir0-1])/(r_vec[ir0]-r_vec[ir0-1]);
+    utmp=(pnow_kerr-phi_vec[iphi0-1])/(phi_vec[iphi0]-phi_vec[iphi0-1]);
+    ttmp1=1.-ttmp;
+    utmp1=1.-utmp;
+//  time delay factor (not used for a stationary problem):
+    if((nt>1) && (column[3]==1)){
+      y1=dc[ir0-1+nr*(iphi0-1)];
+      y2=dc[ir0+nr*(iphi0-1)];
+      y3=dc[ir0+nr*iphi0];
+      y4=dc[ir0-1+nr*iphi0];
+      delay=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4);
+    }
+    if((nt>1) && (column[3]==0))delay=-rnow*sin(pnow)*sin(thetaO/180.*PI);
+//  redshift factor:
+//  if(column[1]==1){
+/*   //  bilinear interpolation
+      y1=dc[ir0-1+nr*(iphi0-1)+nr*nph];
+      y2=dc[ir0+nr*(iphi0-1)+nr*nph];
+      y3=dc[ir0+nr*iphi0+nr*nph];
+      y4=dc[ir0-1+nr*iphi0+nr*nph];
+      gfac=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4)
+*/  
+//    bicubic interpolation
+      g[0]=dc[ir0-1+nr*(iphi0-1)+nr*nph];
+      g[1]=dc[ir0+nr*(iphi0-1)+nr*nph];
+      g[2]=dc[ir0+nr*iphi0+nr*nph];
+      g[3]=dc[ir0-1+nr*iphi0+nr*nph];
+      g1[0]=dc[ir0-1+nr*(iphi0-1)+nr*nph*6];
+      g1[1]=dc[ir0+nr*(iphi0-1)+nr*nph*6];
+      g1[2]=dc[ir0+nr*iphi0+nr*nph*6];
+      g1[3]=dc[ir0-1+nr*iphi0+nr*nph*6];
+      g2[0]=dc[ir0-1+nr*(iphi0-1)+nr*nph*7];
+      g2[1]=dc[ir0+nr*(iphi0-1)+nr*nph*7];
+      g2[2]=dc[ir0+nr*iphi0+nr*nph*7];
+      g2[3]=dc[ir0-1+nr*iphi0+nr*nph*7];
+      g12[0]=dc[ir0-1+nr*(iphi0-1)+nr*nph*8];
+      g12[1]=dc[ir0+nr*(iphi0-1)+nr*nph*8];
+      g12[2]=dc[ir0+nr*iphi0+nr*nph*8];
+      g12[3]=dc[ir0-1+nr*iphi0+nr*nph*8];
+      bcuint(g, g1, g2, g12, r_vec[ir0-1], r_vec[ir0], phi_vec[iphi0-1],
+                  phi_vec[iphi0], rnow_rplus, pnow_kerr, &gfac);
+//  }else gfac=sqrt(rnow-1.)/(sqrt(rnow)-cos(pnow)*sin(thetaO/180.*PI));
+    if(gfac < 0.)gfac=0.;
+    gfac=zzshift*gfac;
+//  cosine
+    y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*2];
+    y2=dc[ir0+nr*(iphi0-1)+nr*nph*2];
+    y3=dc[ir0+nr*iphi0+nr*nph*2];
+    y4=dc[ir0-1+nr*iphi0+nr*nph*2];
+    cosine=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4);
+//    cosine=cos(thetaO/180.*PI)*sqrt(rnow-1.)/
+//           (sqrt(rnow)-cos(pnow)*sin(thetaO/180.*PI))
+//  light lensing amplification:
+    if(column[2]==1 && column[4]==1){
+      y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*2]*dc[ir0-1+nr*(iphi0-1)+nr*nph*3];
+      y2=dc[ir0+nr*(iphi0-1)+nr*nph*2]*dc[ir0+nr*(iphi0-1)+nr*nph*3];
+      y3=dc[ir0+nr*iphi0+nr*nph*2]*dc[ir0+nr*iphi0+nr*nph*3];
+      y4=dc[ir0-1+nr*iphi0+nr*nph*2]*dc[ir0-1+nr*iphi0+nr*nph*3];
+      transf=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4);
+    }else transf=cosine;
+/*  
+    if(column[4]==1){
+      y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*3];
+      y2=dc[ir0+nr*(iphi0-1)+nr*nph*3];
+      y3=dc[ir0+nr*iphi0+nr*nph*3];
+      y4=dc[ir0-1+nr*iphi0+nr*nph*3];
+      transf=(utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4))*cosine
+    }else transf=cosine;
+*/  
+//  change in polarization angle:
+    if(polar){
+      y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*4];
+      y2=dc[ir0+nr*(iphi0-1)+nr*nph*4];
+      y3=dc[ir0+nr*iphi0+nr*nph*4];
+      y4=dc[ir0-1+nr*iphi0+nr*nph*4];
+      if(fabs(y2-y1)>PI){
+       if(y1<0.)y1+=PI2;
+       if(y2<0.)y2+=PI2;
+      }
+      if(fabs(y4-y3)>PI){
+       if(y3<0.)y3+=PI2;
+       if(y4<0.)y4+=PI2;
+      }
+      y1=ttmp1*y1+ttmp*y2;
+      y2=ttmp*y3+ttmp1*y4;
+      if(fabs(y2-y1)>PI){
+       if(y1<0.)y1+=PI2;
+       if(y2<0.)y2+=PI2;
+      }
+      polarization=utmp1*y1+utmp*y2;
+      if(polarization>PI)polarization-=PI2;
+      cos2pol=cos(2.*polarization);
+      sin2pol=sin(2.*polarization);
+    }
+/*  
+    if(polar && column[4]==0){
+     polarization=-atan2(cos(thetaO/180.*PI)*sin(pnow),
+                         -cos(pnow)+sqrt(rnow)*sin(thetaO/180.*PI));
+     cos2pol=cos(2.*polarization);
+     sin2pol=sin(2.*polarization);
+    }
+*/  
+//   change in azimuthal emission angle (phiphoton):
+    y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*5];
+    y2=dc[ir0+nr*(iphi0-1)+nr*nph*5];
+    y3=dc[ir0+nr*iphi0+nr*nph*5];
+    y4=dc[ir0-1+nr*iphi0+nr*nph*5];
     if(fabs(y2-y1)>PI){
      if(y1<0.)y1+=PI2;
      if(y2<0.)y2+=PI2;
@@ -1693,53 +1730,119 @@ while(iiloop<(iloop+nloops) && iiloop<=(nrad*nphi)){
      if(y1<0.)y1+=PI2;
      if(y2<0.)y2+=PI2;
     }
-    polarization=utmp1*y1+utmp*y2;
-    if(polarization>PI)polarization-=PI2;
-    cos2pol=cos(2.*polarization);
-    sin2pol=sin(2.*polarization);
-  }
+    phiphoton=utmp1*y1+utmp*y2;
+    if(phiphoton>PI)phiphoton-=PI2;
+//        if(polar)phiphoton=0.
+//  alpha
+    y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*9];
+    y2=dc[ir0+nr*(iphi0-1)+nr*nph*9];
+    y3=dc[ir0+nr*iphi0+nr*nph*9];
+    y4=dc[ir0-1+nr*iphi0+nr*nph*9];
+    alpha=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4);
+//  beta
+    y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*10];
+    y2=dc[ir0+nr*(iphi0-1)+nr*nph*10];
+    y3=dc[ir0+nr*iphi0+nr*nph*10];
+    y4=dc[ir0-1+nr*iphi0+nr*nph*10];
+    beta=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4);
+  }else{//compute everything for geodesics approximated by straight lines
+//    alpha=rnow*cos(pnow);
+//    beta=-rnow*sin(pnow)*cos(thetaO/180.*PI);
+//    delay=-rnow*sin(pnow)*sin(thetaO/180.*PI);
+//  ... we must convert phi from Boyer-Lindquist coordinate to the Kerr coordinate
+    if(fabs(am)==1.)pnow_kerr = pnow + am/(rnow-1.);
+    else pnow_kerr = pnow - am/(r_plus-r_minus)*log(rnow_rplus/(rnow-r_minus));
+//  phi in the data tables is >= 0 and <= 2*PI
+//  ...let's modify pnow_kerr so that it lies in this range
+    if(am<0.)pnow_kerr=PI-pnow_kerr;
+    pnow_kerr = fmod(pnow_kerr,PI2);
+    if(pnow_kerr<0.)pnow_kerr+=PI2;
+    imin=0;
+    imax=nph;
+    iphi0=nph/2;
+    while((imax-imin)>1){
+      if(pnow_kerr>=phi_vec[iphi0-1])imin=iphi0;
+      else imax=iphi0;
+      iphi0=(imin+imax)/2;
+    }
+    if(imax==nph && pnow_kerr>phi_vec[nph-1])iphi0=nph;
+    utmp=(pnow_kerr-phi_vec[iphi0-1])/(phi_vec[iphi0]-phi_vec[iphi0-1]);
+    utmp1=1.-utmp;
+// alpha
+    y1=dc[nr-1+nr*(iphi0-1)+nr*nph*9];
+    y2=dc[nr-1+nr*iphi0+nr*nph*9];
+    alpha=utmp1*y1+utmp*y2;
+    alpha = rnow*cos(pnow) + alpha - (r_vec[nr-1]+r_plus)*cos(pnow);
+// beta
+    y1=dc[nr-1+nr*(iphi0-1)+nr*nph*10];
+    y2=dc[nr-1+nr*iphi0+nr*nph*10];
+    beta=utmp1*y1+utmp*y2;
+    beta = -rnow*sin(pnow)*cos(thetaO/180.*PI) + beta + 
+           (r_vec[nr-1]+r_plus)*sin(pnow)*cos(thetaO/180.*PI);
+//  time delay factor (not used for a stationary problem):
+    if((nt>1) && (column[3]==1)){
+      y1=dc[nr-1+nr*(iphi0-1)];
+      y2=dc[nr-1+nr*iphi0];
+      delay=utmp1*y1+utmp*y2;
+    }
+    if((nt>1) && (column[3]==0))delay=-rnow*sin(pnow)*sin(thetaO/180.*PI);
+    if(nt>1) delay -= ddel;
+    delay = -rnow*sin(pnow)*sin(thetaO/180.*PI) +
+            delay + (r_vec[nr-1]+r_plus)*sin(pnow)*sin(thetaO/180.*PI);
+    Rsgn=1.;
+    if(beta>0.)Rsgn = -1.;
+    rnow2=rnow*rnow;
+    delta=rnow2-2.*rnow+am2;
+    ll=alpha*sin(thetaO/180.*PI);
+    q2=beta*beta+cos(thetaO/180.*PI)*cos(thetaO/180.*PI)*(alpha*alpha-am2);
+    pr=Rsgn*sqrt((rnow2+am2-am*ll)*(rnow2+am2-am*ll)-delta*((ll-am)*(ll-am)+q2))
+       /rnow2;
+    p_r=rnow2/delta*pr;
+    p_th=-sqrt(fabs(q2));
+//  Keplerian velocity U^\mu
+    if(rnow>rms){
+      sqr=fabs(rnow2-3.*rnow+2.*am*sqrt(rnow));
+      Ut=(rnow2+am*sqrt(rnow))/(rnow*sqrt(sqr));
+      Ur=0.;
+      Uph=1./sqrt(rnow*sqr);
+    }else{
+      sqr_ms=fabs(rms2-3.*rms+2.*am*sqrt(rms));
+      Ems=(rms2-2.*rms+am*sqrt(rms))/(rms*sqrt(sqr_ms));
+      Lms=(rms2+am2-2.*am*sqrt(rms))/sqrt(rms*sqr_ms);
+      Ut=(((rnow*(rnow2+am2)+2.*am2)*Ems-2.*am*Lms)/rnow/delta);
+      Ur=(-sqrt(fabs((rnow*(rnow2+am2)+2.*am2)*Ems*Ems-4.*am*Ems*Lms
+         -(rnow-2.)*Lms*Lms-rnow*delta))/rnow/sqrt(rnow));
+      Uph=((2.*am*Ems+(rnow-2.)*Lms)/rnow/delta);
+    }
+//  if(am<0.)Uph=-Uph;
+//redshift factor:
+    gfac=1./(Ut-p_r*Ur-ll*Uph);
+//cosine
+    cosine=-gfac*p_th/rnow;
+
+    AA=(rnow2+am2)*(rnow2+am2)-am2*delta;
+    pt=(AA-2.*am*rnow*ll)/(delta*rnow2);
+    pph=((rnow-2.)*ll+2.*am)/(delta*rnow);
+//change in azimuthal emission angle (phiphoton):
+    phiphoton=atan2(gfac*delta/rnow*(-pt*Uph+pph*Ut),gfac*pr-Ur);
 /*
-  if(polar && column[4]==0){
-   polarization=-atan2(cos(thetaO/180.*PI)*sin(pnow),
-                       -cos(pnow)+sqrt(rnow)*sin(thetaO/180.*PI));
-   cos2pol=cos(2.*polarization);
-   sin2pol=sin(2.*polarization);
-  }
+//change in polarization angle:
+//THIS DOES NOT WORK PROPERLY
+    pth=p_th/rnow2;
+    ft=-cosine*(gfac*pt-Ut);
+    fr=-cosine*(gfac*pr-Ur);
+    fth=-1./rnow-cosine*gfac*pth;
+    fph=-cosine*(gfac*pph-Uph);
+    kappa1=rnow*(pth*(am*ft-(rnow2+am2)*fph)-(am*pt-(rnow2+am2)*pph)*fth);
+    kappa2=rnow*(pr*(-ft+am*fph)+(pt-am*pph)*fr);
+    polarization=atan2((alpha-am*sin(thetaO/180.*PI))*kappa2+beta*kappa1,
+                       -(alpha-am*sin(thetaO/180.*PI))*kappa1+beta*kappa2);
 */
-// change in azimuthal emission angle (phiphoton):
-  y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*5];
-  y2=dc[ir0+nr*(iphi0-1)+nr*nph*5];
-  y3=dc[ir0+nr*iphi0+nr*nph*5];
-  y4=dc[ir0-1+nr*iphi0+nr*nph*5];
-  if(fabs(y2-y1)>PI){
-   if(y1<0.)y1+=PI2;
-   if(y2<0.)y2+=PI2;
+    gfac=zzshift*gfac;
+    transf=cosine;
   }
-  if(fabs(y4-y3)>PI){
-   if(y3<0.)y3+=PI2;
-   if(y4<0.)y4+=PI2;
-  }
-  y1=ttmp1*y1+ttmp*y2;
-  y2=ttmp*y3+ttmp1*y4;
-  if(fabs(y2-y1)>PI){
-   if(y1<0.)y1+=PI2;
-   if(y2<0.)y2+=PI2;
-  }
-  phiphoton=utmp1*y1+utmp*y2;
-  if(phiphoton>PI)phiphoton-=PI2;
-//      if(polar)phiphoton=0.
-//alpha
-  y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*9];
-  y2=dc[ir0+nr*(iphi0-1)+nr*nph*9];
-  y3=dc[ir0+nr*iphi0+nr*nph*9];
-  y4=dc[ir0-1+nr*iphi0+nr*nph*9];
-  alpha=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4);
-//beta
-  y1=dc[ir0-1+nr*(iphi0-1)+nr*nph*10];
-  y2=dc[ir0+nr*(iphi0-1)+nr*nph*10];
-  y3=dc[ir0+nr*iphi0+nr*nph*10];
-  y4=dc[ir0-1+nr*iphi0+nr*nph*10];
-  beta=utmp1*(ttmp1*y1+ttmp*y2)+utmp*(ttmp*y3+ttmp1*y4);
+//  fprintf(stdout,"%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\n", 
+//          rnow, alpha, beta, delay, gfac, cosine, transf, phiphoton, polarization);
 //If we are at position that is obscured go to next step in iiloop
   if(rcloud2>0.){
     dr2=(alpha-alphac)*(alpha-alphac)+(beta-betac)*(beta-betac);
@@ -2010,22 +2113,22 @@ void bcucof(double y[], double y1[], double y2[], double y12[], double d1,
             double d2, double c[]){
   
 static int wt[16][16]=
-  {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,
-  -3,0,0,3,0,0,0,0,-2,0,0,-1,0,0,0,0,
-  2,0,0,-2,0,0,0,0,1,0,0,1,0,0,0,0,
-  0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,
-  0,0,0,0,-3,0,0,3,0,0,0,0,-2,0,0,-1,
-  0,0,0,0,2,0,0,-2,0,0,0,0,1,0,0,1,
-  -3,3,0,0,-2,-1,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,-3,3,0,0,-2,-1,0,0,
-  9,-9,9,-9,6,3,-3,-6,6,-6,-3,3,4,2,1,2,
-  -6,6,-6,6,-4,-2,2,4,-3,3,3,-3,-2,-1,-1,-2,
-  2,-2,0,0,1,1,0,0,0,0,0,0,0,0,0,0,
-  0,0,0,0,0,0,0,0,2,-2,0,0,1,1,0,0,
-  -6,6,-6,6,-3,-3,3,3,-4,4,2,-2,-2,-2,-1,-1,
-  4,-4,4,-4,2,2,-2,-2,2,-2,-2,2,1,1,1,1};
+  {{1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+   {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0},
+   {-3,0,0,3,0,0,0,0,-2,0,0,-1,0,0,0,0},
+   {2,0,0,-2,0,0,0,0,1,0,0,1,0,0,0,0},
+   {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0},
+   {0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0},
+   {0,0,0,0,-3,0,0,3,0,0,0,0,-2,0,0,-1},
+   {0,0,0,0,2,0,0,-2,0,0,0,0,1,0,0,1},
+   {-3,3,0,0,-2,-1,0,0,0,0,0,0,0,0,0,0},
+   {0,0,0,0,0,0,0,0,-3,3,0,0,-2,-1,0,0},
+   {9,-9,9,-9,6,3,-3,-6,6,-6,-3,3,4,2,1,2},
+   {-6,6,-6,6,-4,-2,2,4,-3,3,3,-3,-2,-1,-1,-2},
+   {2,-2,0,0,1,1,0,0,0,0,0,0,0,0,0,0},
+   {0,0,0,0,0,0,0,0,2,-2,0,0,1,1,0,0},
+   {-6,6,-6,6,-3,-3,3,3,-4,4,2,-2,-2,-2,-1,-1},
+   {4,-4,4,-4,2,2,-2,-2,2,-2,-2,2,1,1,1,1}};
 int l,k,j,i;
 double xx,d1d2,cl[16],x[16];
 
