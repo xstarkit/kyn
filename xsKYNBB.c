@@ -73,7 +73,12 @@
  * par8  ... BHmass  - the black hole mass in units of Solar mass
  * par9  ... arate  - accretion rate in units of Ledd if positive or in 
  *                    Solar mass per Julian year (365.25days) if negative
- * par10 ... f_col  - spectral hardening factor
+ * par10 ... f_col  - spectral hardening factor, if f_col=-1 then the value is 
+ *                    computed according to Done et al. (2012) MNRAS 420, 1848,\
+ *                    i.e. 
+ *                    f_col = 1 for Tmax < 3x10^4 K
+ *                    f_col = [ 72 / ( Tmax / keV ) ]^(1/9) for Tmax > 10^5 K
+ *                    f_col = [ ( Tmax/K / 3x10^4 ) ]^0.82  in all other cases
  * par11 ... alpha  - position of the cloud centre in GM/c^2 in alpha coordinate
  *                    (alpha being the impact parameter in phi direction, 
  *                     positive for approaching side of the disc)
@@ -268,7 +273,7 @@ double ide_param[25], flux_out[ne + 1], qar_final[ne], uar_final[ne],
 double I_l, I_r, Q_l, cose0, ttmp, ttmp1, y1, y2;
 double pamin, pamax, pa2min, pa2max;
 double am2, pom, pom1, pom2, pom3, rms, r_plus, x, Ccal, Lcal, arcosa3, Ut_rms,
-       chi0;
+       chi0, Tnew;
 int    ne_loc, stokes, ie, irow, imin, imax, i0, itau0, orientation, iparam;
 float  data_type;
 char   data_type_c[8] = "Stokes";
@@ -379,21 +384,6 @@ ide_param[4] = param[4];
 if( param[3] == 1 || param[3] == 0 ) rout = param[4];
 else if( param[3] == 2 ) rout = param[4] * rms;
 else rout=0.;
-//if rout >= 100*ROUTMAX than we assume rout to be infinity
-//we then re-define it to ROUTMAX (or rin if rin>ROUTMAX)
-//and compute the flux above ROUTMAX with outer_disc subroutine
-if( rout >= 100*ROUTMAX ){
-  rout = ROUTMAX;
-  outerdisc = 1;
-  if( param[3] == 1 || param[3] == 0 ){
-    if(rout < param[2]) rout = param[2];
-    ide_param[4] = rout;
-  }
-  else if( param[3] == 2 ){
-    if(rout < param[2] * rms) rout = param[2] * rms;
-    ide_param[4] = rout / rms;    
-  }
-}
 // phi - lower azimuth of non-zero disc emissivity (deg)
 ide_param[5] = param[5];
 // dphi - (phi+dphi) is upper azimuth of non-zero disc emissivity (deg)
@@ -421,24 +411,64 @@ if(param[8] < 0.){
 }
 // f_col - spectral hardening factor
 f_col = param[9];
+if ((f_col < 0) && (f_col != -1.)) {
+  xs_write("kynbb: f_col has to be positive or -1.", 5);
+  for (ie = 0; ie < ne; ie++) photar[ie] = 0.;
+  return;
+}
 // zshift - overall Doppler shift
 ide_param[12] = param[13];
 // ntable - table model (defines fits file with tables)
 ide_param[13] = param[14];
-// set the outer temperature Tout (its normalization will be set later)
-x = sqrt(rout);
-// Bcal = 1. + am / (x*x*x);
-Ccal = 1. - 3. / (x*x) + 2. * am / (x*x*x);
-if (am < 1.)
-  Lcal = 1. / x * (x - x0 - 1.5 * am * log(x / x0) -
-         3. * pow(x1 - am,2.)/x1/(x1 - x2)/(x1 - x3) * log((x - x1)/(x0 - x1))-
-         3. * pow(x2 - am,2.)/x2/(x2 - x1)/(x2 - x3) * log((x - x2)/(x0 - x2))-
-         3. * pow(x3 - am,2.)/x3/(x3 - x1)/(x3 - x2) * log((x - x3)/(x0 - x3)));
-else Lcal = 1. / x * (x - 1 + 1.5 * log((x + 2.) / 3. / x));
-Tout = pow(x, -1.5) * pow(arate, 0.25) *
-       pow(BHmass, -0.5) * pow(Lcal / Ccal, 0.25);
-// Tout = pow(x, -1.5) * pow(1 - x0 / x, 0.25) *
-//          pow(arate, 0.25) * pow(BHmass, -0.5);
+//if rout >= 100*ROUTMAX than we assume rout to be infinity
+//we then re-define it to ROUTMAX (or rin if rin>ROUTMAX)
+//and compute the flux above ROUTMAX with outer_disc subroutine
+Tnorm = K_KEVK * pow(C_MS, 1.5) *
+        pow(3. / (8. * PI * G * G * MSOLAR * YEAR * SIGMA), 0.25);
+if( rout >= 100*ROUTMAX ){
+  outerdisc = 1;
+  rout = ROUTMAX;
+// set the outer temperature Tout
+  x = sqrt(rout);
+//   Bcal = 1. + am / (x*x*x);
+  Ccal = 1. - 3. / (x*x) + 2. * am / (x*x*x);
+  if (am < 1.)
+    Lcal = 1. / x * (x - x0 - 1.5 * am * log(x / x0) -
+           3. * pow(x1 - am,2.)/x1/(x1 - x2)/(x1 - x3) * log((x - x1)/(x0 - x1))-
+           3. * pow(x2 - am,2.)/x2/(x2 - x1)/(x2 - x3) * log((x - x2)/(x0 - x2))-
+           3. * pow(x3 - am,2.)/x3/(x3 - x1)/(x3 - x2) * log((x - x3)/(x0 - x3)));
+  else Lcal = 1. / x * (x - 1 + 1.5 * log((x + 2.) / 3. / x));
+  Tout = Tnorm * pow(x, -1.5) * pow(arate, 0.25) * pow(BHmass, -0.5) 
+         * pow(Lcal / Ccal, 0.25);
+//   Tout = pow(x, -1.5) * pow(1 - x0 / x, 0.25) *
+//            pow(arate, 0.25) * pow(BHmass, -0.5);
+// increase rout if needed so that f_col is one in the outer_disc or at least
+// the temperature is such that outer_disc contribution is very small in the
+// required energy range
+  Tnew = ( ear[0]/20. > K_KEVK*3e4 ? ear[0]/20. : K_KEVK*3e4 );
+  if( Tout > Tnew ){
+    rout *= pow(Tnew/Tout,-4./3.);
+    x = sqrt(rout);
+//     Bcal = 1. + am / (x*x*x);
+    Ccal = 1. - 3. / (x*x) + 2. * am / (x*x*x);
+    if (am < 1.)
+      Lcal = 1. / x * (x - x0 - 1.5 * am * log(x / x0) -
+             3. * pow(x1 - am,2.)/x1/(x1 - x2)/(x1 - x3) * log((x - x1)/(x0 - x1))-
+             3. * pow(x2 - am,2.)/x2/(x2 - x1)/(x2 - x3) * log((x - x2)/(x0 - x2))-
+             3. * pow(x3 - am,2.)/x3/(x3 - x1)/(x3 - x2) * log((x - x3)/(x0 - x3)));
+    else Lcal = 1. / x * (x - 1 + 1.5 * log((x + 2.) / 3. / x));
+    Tout = Tnorm * pow(x, -1.5) * pow(arate, 0.25) * pow(BHmass, -0.5) 
+           * pow(Lcal / Ccal, 0.25);
+  }
+//reset ide_param[4] to the new rout
+  if( param[3] == 1 || param[3] == 0 ){
+    if(rout < param[2]) rout = param[2];
+    ide_param[4] = rout;
+  }else if( param[3] == 2 ){
+    if(rout < param[2] * rms) rout = param[2] * rms;
+    ide_param[4] = rout / rms;    
+  }
+}
 // Let's define local energy and local flux
 ne_loc = ne;
 // edivision - type of division in local energies (0-equidistant, 1-exponential)
@@ -479,8 +509,8 @@ fprintf(fw, "dphi         %12.6f\n", param[6]);
 fprintf(fw, "BBmass       %12.6f\n", param[7]);
 fprintf(fw, "arate        %12.6f\n", param[8]);
 fprintf(fw, "f_col        %12.6f\n", param[9]);
-fprintf(fw, "alpha      %12.6f\n", ide_param[21]);
-fprintf(fw, "beta       %12.6f\n", ide_param[22]);
+fprintf(fw, "alpha        %12.6f\n", ide_param[21]);
+fprintf(fw, "beta         %12.6f\n", ide_param[22]);
 fprintf(fw, "rcloud       %12.6f\n", ide_param[23]);
 fprintf(fw, "zshift       %12.6f\n", param[13]);
 fprintf(fw, "ntable       %12d\n", (int) param[14]);
@@ -517,11 +547,9 @@ for (ie = 0; ie <= ne_loc; ie++) {
   ener_loc[ie] = ear[ie];
 // the factor rg^2 is due to the fact that we integrate in dS = r * dr * dphi
 // which we do in radius in geometrical units!!!
-  flx[ie] = 2 * pow(ener_loc[ie] / H_KEVS / C_MS / KPC, 2.) / H_KEVS /
-            pow(f_col, 4.) * pow(G * MSOLAR * BHmass / (C_MS * C_MS), 2.);
+  flx[ie] = 2 * pow(ener_loc[ie] / H_KEVS / C_MS / KPC, 2.) / H_KEVS
+            * pow(G * MSOLAR * BHmass / (C_MS * C_MS), 2.);
 }
-Tnorm = f_col * K_KEVK * pow(C_MS, 1.5) *
-        pow(3. / (8. * PI * G * G * MSOLAR * YEAR * SIGMA), 0.25);
 
 /******************************************************************************
 // local spectrum output -- write ener_loc[] and flx[] into file:
@@ -838,7 +866,7 @@ void emis_BB(double** ear_loc, const int ne_loc, const int nt,
              const double alpha_o, const double beta_o, 
              const double delay, const double g) {
 
-double temp, x, Ccal, Lcal, flx0, flx1, g2, I_l, Q_l, I_r;
+double temp, f_col1, x, Ccal, Lcal, flx0, flx1, g2, I_l, Q_l, I_r;
 int    ie, imin, imax, i0;
 
 *ear_loc = ener_loc;
@@ -853,13 +881,19 @@ if (am < 1.)
 else Lcal = 1. / x * (x - 1 + 1.5 * log((x + 2.) / 3. / x));
 temp = Tnorm * pow(x, -1.5) * pow(arate, 0.25) *
        pow(BHmass, -0.5) * sqrt(sqrt(Lcal / Ccal));
-temp *= g;
+//let's compute the f_col
+if(f_col == -1){
+  if(temp/K_KEVK < 3e4)f_col1 = 1.;
+  else if (temp/K_KEVK < 1e5) f_col1 = pow( temp/K_KEVK / 3e4 , 0.82);
+  else f_col1 = pow(72./temp, 1./9.);
+}else f_col1 = f_col;
+temp *= g * f_col1;
 g2 = g * g;
 flx0 = flx[0] / ( exp( *(*ear_loc) / temp ) - 1. );
 for (ie = 0; ie < ne_loc; ie++) {
   flx1 = flx[ie+1] / ( exp( *(*ear_loc + ie + 1) / temp ) - 1. );
-  far_loc[ie] = ( flx0 + flx1 ) / 2. * 
-                  ( *(*ear_loc + ie + 1) - *(*ear_loc + ie) ) / g2 ;
+  far_loc[ie] = ( flx0 + flx1 ) / 2. / g2 / pow(f_col1, 4) * 
+                  ( *(*ear_loc + ie + 1) - *(*ear_loc + ie) );
   flx0 = flx1;
 }
 if (polar) {
@@ -925,18 +959,18 @@ double y0[23] = {1.932161609, 1.770917995, 1.497175205, 1.207475655,
                  0.0642642844, 0.0436488382, 0.02943951894, 0.01973255119,
                  0.01315284209, 0.008723435269, 0.00575970436, 0.003787405908,
                  0.002481262304, 0.00162006534, 0.00105449408};
-double norm, x, y;
+double norm, x, y, f_col1;
 int    ie, imin, imax, i0;
 
-Tnorm = f_col * K_KEVK * pow(C_MS, 1.5) *
-        pow(3. / (8. * PI * G * G * MSOLAR * YEAR * SIGMA), 0.25);
-Tout = Tnorm * Tout;
+//let's compute the f_col
+if(f_col == -1) f_col1 = 1.;
+else f_col1 = f_col;
 // the factor rg^2 is due to rout which is in geometrical units!!!
-norm = 16. * PI * cos(theta_o / 180. * PI) * rout * rout * pow(Tout, 8. / 3.) /
-       H_KEVS / pow(H_KEVS * C_MS* KPC, 2.) / 3. / pow(f_col, 4.) *
+norm = 16. * PI * cos(theta_o / 180. * PI) * rout * rout * pow(Tout*f_col1, 8. / 3.) /
+       H_KEVS / pow(H_KEVS * C_MS* KPC, 2.) / 3. / pow(f_col1, 4.) *
        pow(G * MSOLAR * BHmass / (C_MS * C_MS), 2.);
 for (ie = 0; ie <= ne; ie++) {
-  x = ear[ie] / Tout;
+  x = ear[ie] / (Tout * f_col1);
   if (x > 11.) flux[ie] = 0.;
   else {
     imin = 0;
