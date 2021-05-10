@@ -1569,7 +1569,11 @@ Definition of the parameters:
     - accretion rate in units of M<sub>Edd</sub> (if positive) or in units of 
       Solar mass per Julian year, i.e. 365.25days (if negative)
   * **par10 ... f_col**
-    - spectral hardening factor
+    - spectral hardening factor, if f_col=-1 then its value is computed 
+      according to Done et al. (2012) MNRAS 420, 1848, i.e.
+      f_col = 1 for Tmax < 3&times;10<sup>4</sup> K  
+      f_col = [ 72 / ( Tmax / keV ) ]<sup>1/9</sup> for Tmax > 10<sup>5</sup> K  
+      f_col = [ ( Tmax/K / 3&times;10<sup>4</sup> ) ]<sup>0.82</sup>  in all other cases
   * **par11 ... alpha**
     - position of the cloud centre in GM/c<sup>2</sup> in alpha coordinate (alpha being 
       the impact parameter in &phi;-direction, positive for approaching side 
